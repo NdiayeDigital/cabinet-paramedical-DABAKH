@@ -1,0 +1,44 @@
+# =============================================================================
+# CABINET PARAMÉDICAL DABAKH — .gitignore
+# =============================================================================
+
+# ─── FICHIERS DE CREDENTIALS (NE JAMAIS POUSSER SUR GITHUB) ─────────────────
+credentials.md
+credentials.txt
+admin.txt
+secrets.txt
+*.secret
+*.key
+*.pem
+
+# ─── VARIABLES D'ENVIRONNEMENT ───────────────────────────────────────────────
+.env
+.env.*
+config.json
+config.local.js
+
+# ─── DONNÉES DE SESSION LOCALES ──────────────────────────────────────────────
+daba_session/
+localStorage_backup/
+
+# ─── LOGS ────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── FICHIERS SYSTÈME ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.bak
+
+# ─── ÉDITEURS & IDE ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─── DÉPENDANCES NODE (si utilisé plus tard) ─────────────────────────────────
+node_modules/
+dist/
+.cache/

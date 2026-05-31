@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cabinet Paramédical DABAKH - Kinésithérapie & Rééducation Spécialisée</title>
+    <meta name="description"
+        content="Cabinet Paramédical DABAKH : Spécialistes en kinésithérapie, rééducation motrice, neurologie et traumatologie à Dakar. Prenez RDV ou appelez au 77 209 17 25.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="dark-theme">
+
+    <!-- ========================================== -->
+    <!--          NOTIFICATION BANNER               -->
+    <!-- ========================================== -->
+    <div id="top-notification" class="notification-banner hidden">
+        <div class="notif-content">
+            <span class="pulse-dot"></span>
+            <span id="notif-text">Nouveau SMS reçu au cabinet (77 209 17 25)</span>
+        </div>
+        <button class="notif-close-btn" onclick="closeTopNotification()"><i data-lucide="x"></i></button>
+    </div>
+
+    <!-- ========================================== -->
+    <!--       0. INSCRIPTION OBLIGATOIRE           -->
+    <!-- ========================================== -->
+    <div id="onboarding-page" class="view-hidden">
+        <div class="onboarding-backdrop">
+            
+            <!-- Scrolling Stats Ticker for patients who walked again -->
+            <div class="onboarding-ticker-wrapper">
+                <div class="onboarding-ticker">
+                    <span class="ticker-item"><i data-lucide="footprints"></i> <strong>RÉÉDUCATION AVC :</strong> 342 patients ont réappris à marcher cette année au Cabinet !</span>
+                    <span class="ticker-item"><i data-lucide="trending-up"></i> <strong>MOBILITÉ RETROUVÉE :</strong> 89% des paralysies motrices récupèrent leur marche autonome en moins de 6 mois.</span>
+                    <span class="ticker-item"><i data-lucide="award"></i> <strong>VICTOIRE AVC :</strong> Plus de 1 450 familles sénégalaises ont vu leurs proches remarcher grâce à nos protocoles.</span>
+                    <span class="ticker-item"><i data-lucide="heart"></i> <strong>PÉDIATRIE MOTRICE :</strong> 210 enfants avec retard de marche marchent aujourd'hui sans aide.</span>
+                    <span class="ticker-item"><i data-lucide="shield"></i> <strong>SANS CHIRURGIE :</strong> 95% des patients souffrant d'hernie discale remarchent normalement sans douleur.</span>
+                    
+                    <!-- Duplicate for seamless scrolling -->
+                    <span class="ticker-item"><i data-lucide="footprints"></i> <strong>RÉÉDUCATION AVC :</strong> 342 patients ont réappris à marcher cette année au Cabinet !</span>
+                    <span class="ticker-item"><i data-lucide="trending-up"></i> <strong>MOBILITÉ RETROUVÉE :</strong> 89% des paralysies motrices récupèrent leur marche autonome en moins de 6 mois.</span>
+                    <span class="ticker-item"><i data-lucide="award"></i> <strong>VICTOIRE AVC :</strong> Plus de 1 450 familles sénégalaises ont vu leurs proches remarcher grâce à nos protocoles.</span>
+                    <span class="ticker-item"><i data-lucide="heart"></i> <strong>PÉDIATRIE MOTRICE :</strong> 210 enfants avec retard de marche marchent aujourd'hui sans aide.</span>
+                    <span class="ticker-item"><i data-lucide="shield"></i> <strong>SANS CHIRURGIE :</strong> 95% des patients souffrant d'hernie discale remarchent normalement sans douleur.</span>
+                </div>
+            </div>
+
+            <div class="onboarding-split-container">
+                
+                <!-- Left panel: Stats & info -->
+                <div class="onboarding-stats-panel">
+                    <div class="onboarding-logo-wrapper">
+                        <img src="images/logo-dabakh.png" alt="Cabinet Paramédical DABAKH" class="logo-img-main">
+                        <div class="logo-text-wrapper">
+                            <span class="logo-tagline">Cabinet Paramédical DABAKH</span>
+                            <span class="logo-subtagline">Agréé Ministère de la Santé · Sénégal</span>
+                        </div>
+                    </div>
+                    
+                    <h2 class="stats-panel-title">Votre santé, notre engagement au quotidien</h2>
+                    <p class="stats-panel-subtitle">Accédez au premier cabinet paramédical connecté au Sénégal. Créez votre dossier en 1 minute pour réserver et suivre vos soins.</p>
+                    
+                    <!-- Stats Grid -->
+                    <div class="onboarding-stats-grid">
+                        <!-- Stat 1: circular progress -->
+                        <div class="stat-card circular-stat">
+                            <div class="circle-progress-wrapper">
+                                <svg class="progress-ring" width="70" height="70">
+                                    <circle class="progress-ring__background" stroke="rgba(255,255,255,0.06)" stroke-width="5" fill="transparent" r="28" cx="35" cy="35"/>
+                                    <circle class="progress-ring__circle" stroke="var(--color-primary)" stroke-width="5" stroke-linecap="round" fill="transparent" r="28" cx="35" cy="35" stroke-dasharray="175" stroke-dashoffset="10"/>
+                                </svg>
+                                <span class="circle-percentage">94%</span>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Taux de récupération</h3>
+                                <p>Rétablissement optimal de la mobilité</p>
+                            </div>
+                        </div>
+
+                        <!-- Stat 2: Active patients -->
+                        <div class="stat-card">
+                            <div class="stat-icon-box">
+                                <i data-lucide="users"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>15 000+</h3>
+                                <p>Patients suivis à Dakar et régions</p>
+                            </div>
+                        </div>
+
+                        <!-- Stat 3: Total consultations -->
+                        <div class="stat-card">
+                            <div class="stat-icon-box">
+                                <i data-lucide="activity"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>45 000+</h3>
+                                <p>Séances de rééducation prodiguées</p>
+                            </div>
+                        </div>
+
+                        <!-- Stat 4: Waiting time -->
+                        <div class="stat-card">
+                            <div class="stat-icon-box">
+                                <i data-lucide="clock"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>&lt; 15 min</h3>
+                                <p>Temps d'attente moyen au cabinet</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right panel: The actual form -->
+                <div class="onboarding-form-panel">
+                    <!-- Heading -->
+                    <div class="onboarding-header">
+                        <span class="badge badge-accent" style="margin-bottom:12px;">🔐 Inscription Obligatoire</span>
+                        <h1 class="onboarding-title">Bienvenue ! Créez votre dossier patient</h1>
+                        <p class="onboarding-subtitle">Pour accéder à l'accueil et nos services en ligne, veuillez renseigner vos informations. Ces données restent strictement confidentielles.</p>
+                    </div>
+
+                    <!-- Form -->
+                    <form id="onboarding-form" class="onboarding-form" novalidate>
+                        <div class="onboarding-fields-row">
+                            <div class="form-group">
+                                <label for="ob-prenom">
+                                    <i data-lucide="user" class="inline-icon"></i> Prénom <span class="required-star">*</span>
+                                </label>
+                                <input type="text" id="ob-prenom" placeholder="Ex: Seynabou" autocomplete="given-name" required>
+                                <span class="field-error" id="err-prenom"></span>
+                            </div>
+                            <div class="form-group">
+                                <label for="ob-nom">
+                                    <i data-lucide="user-check" class="inline-icon"></i> Nom <span class="required-star">*</span>
+                                </label>
+                                <input type="text" id="ob-nom" placeholder="Ex: Diop" autocomplete="family-name" required>
+                                <span class="field-error" id="err-nom"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ob-phone">
+                                <i data-lucide="phone" class="inline-icon"></i> Numéro WhatsApp sénégalais <span class="required-star">*</span>
+                            </label>
+                            <div class="input-with-addon">
+                                <span class="addon">🇸🇳 +221</span>
+                                <input type="tel" id="ob-phone" placeholder="7X XXX XX XX" maxlength="12" autocomplete="tel" required>
+                            </div>
+                            <span class="input-tip">Format : 70, 75, 76, 77, 78 suivi de 7 chiffres</span>
+                            <span class="field-error" id="err-phone"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ob-domicile">
+                                <i data-lucide="map-pin" class="inline-icon"></i> Domicile (Quartier / Commune) <span class="required-star">*</span>
+                            </label>
+                            <input type="text" id="ob-domicile" placeholder="Ex: Point E, Dakar" autocomplete="street-address" required>
+                            <span class="field-error" id="err-domicile"></span>
+                        </div>
+
+                        <!-- Privacy notice -->
+                        <div class="onboarding-privacy">
+                            <i data-lucide="shield-check" style="width:16px;height:16px;color:var(--color-success);flex-shrink:0;"></i>
+                            <p>Données stockées localement et protégées. Conformément à la législation sénégalaise sur la protection des données personnelles.</p>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-full btn-lg" id="onboarding-submit-btn">
+                            <i data-lucide="arrow-right"></i>
+                            Valider & Accéder à l'accueil
+                        </button>
+                    </form>
+
+                    <p class="onboarding-footer-note">Déjà inscrit ? <button class="btn-link" id="onboarding-already-registered">Reconnecter mon dossier</button></p>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!--          1. SITE PUBLIC (LANDING)          -->
+    <!-- ========================================== -->
+    <div id="landing-page" class="view-hidden">
+
+        <!-- Navigation Header -->
+        <header class="main-header">
+            <div class="container header-container">
+                <div class="logo">
+                    <img src="images/logo-dabakh.png" alt="Cabinet Paramédical DABAKH" class="logo-img-header">
+                </div>
+                <nav class="nav-menu">
+                    <a href="#accueil">Accueil</a>
+                    <a href="#services">Spécialités & Tarifs</a>
+                    <a href="#contact">WhatsApp Secrétariat</a>
+                </nav>
+                <div class="nav-actions">
+                    <button class="btn btn-text" id="btn-login-nav">Connexion</button>
+                    <button class="btn btn-primary" id="btn-register-nav">S'inscrire</button>
+                </div>
+                <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Menu">
+                    <i data-lucide="more-vertical"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Mobile Navigation Menu -->
+        <div class="mobile-nav" id="mobile-nav">
+            <a href="#accueil" class="mobile-nav-link">Accueil</a>
+            <a href="#services" class="mobile-nav-link">Spécialités & Tarifs</a>
+            <a href="#contact" class="mobile-nav-link">WhatsApp Secrétariat</a>
+            <div class="mobile-nav-actions">
+                <button class="btn btn-text w-full" id="btn-login-mob">Connexion</button>
+                <button class="btn btn-primary w-full" id="btn-register-mob">S'inscrire</button>
+            </div>
+        </div>
+
+        <!-- Hero Section -->
+        <section id="accueil" class="hero-section">
+            <div class="container hero-container grid grid-2 gap-2">
+                <div class="hero-content">
+                    <span class="badge badge-accent">⚡ Cabinet Paramédical DABAKH</span>
+                    <h1>Retrouvez votre mobilité grâce à une rééducation d'excellence</h1>
+                    <p class="hero-description">
+                        Spécialisés en kinésithérapie, rééducation motrice post-AVC, traumatologie sportive et soins du dos. Consultez vos statistiques, soumettez vos examens en ligne et programmez vos séances.
+                    </p>
+                    <div class="hero-actions">
+                        <button class="btn btn-primary btn-lg" id="hero-btn-book">
+                            <i data-lucide="calendar"></i> Prendre Rendez-vous en Ligne
+                        </button>
+                        <a href="tel:+221772091725" class="btn btn-secondary btn-lg" id="hero-btn-call">
+                            <i data-lucide="phone-call" class="text-accent"></i> Appeler : 77 209 17 25
+                        </a>
+                    </div>
+                    <div class="hero-trust">
+                        <div class="trust-avatars">
+                            <span class="avatar">🏃‍♂️</span>
+                            <span class="avatar">🧘‍♀️</span>
+                            <span class="avatar">⚕️</span>
+                        </div>
+                        <p><strong>87% de taux de récupération</strong> fonctionnelle pour nos patients rééduqués.</p>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <!-- Premium Statistics Preview Card (HANDICAP vs RECOVERY) -->
+                    <div class="stats-preview-box bg-glass">
+                        <div class="mockup-header">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                            <div class="mockup-title">dabakh.sn/statistiques-senegal</div>
+                        </div>
+                        <div class="p-2">
+                            <h3 class="mb-1 text-sm text-muted uppercase tracking-wider flex align-center gap-05">
+                                <i data-lucide="bar-chart-2"></i> Données Cliniques (Sénégal)
+                            </h3>
+                            
+                            <!-- Animated Bar Chart representation -->
+                            <div class="animated-chart-container mb-2">
+                                <div class="chart-bars">
+                                    <div class="c-bar" style="--bar-h: 20%; --delay: 0s;"></div>
+                                    <div class="c-bar" style="--bar-h: 35%; --delay: 0.2s;"></div>
+                                    <div class="c-bar" style="--bar-h: 40%; --delay: 0.4s;"></div>
+                                    <div class="c-bar" style="--bar-h: 65%; --delay: 0.6s;"></div>
+                                    <div class="c-bar" style="--bar-h: 85%; --delay: 0.8s;"></div>
+                                    <div class="c-bar" style="--bar-h: 95%; --delay: 1s;"></div>
+                                </div>
+                                <div class="chart-labels">
+                                    <span>S1</span><span>S2</span><span>S3</span><span>S4</span><span>S5</span><span>S6</span>
+                                </div>
+                                <div class="chart-caption text-xs text-muted text-center mt-05">
+                                    Évolution de la motricité post-AVC (Semaines)
+                                </div>
+                            </div>
+
+                            <!-- Stat 1: Survival rate -->
+                            <div class="stat-progress-bar mb-15">
+                                <div class="flex justify-between text-sm mb-05">
+                                    <span>Séquelles motrices après AVC</span>
+                                    <span class="text-danger font-bold animated-counter">~60%</span>
+                                </div>
+                                <div class="progress-track bg-dark">
+                                    <div class="progress-fill bg-danger animated-progress" style="width: 60%;"></div>
+                                </div>
+                                <span class="text-xs text-muted mt-02 block">Source: Ministère de la Santé (MSAS) / OMS Sénégal.</span>
+                            </div>
+
+                            <!-- Stat 2: Recovery rate -->
+                            <div class="stat-progress-bar">
+                                <div class="flex justify-between text-sm mb-05">
+                                    <span>Récupération après Rééducation</span>
+                                    <span class="text-success font-bold animated-counter">85%</span>
+                                </div>
+                                <div class="progress-track bg-dark">
+                                    <div class="progress-fill bg-success animated-progress delay-1" style="width: 85%; box-shadow: 0 0 10px var(--color-success);"></div>
+                                </div>
+                                <span class="text-xs text-muted mt-02 block">Basé sur les études du CHU de Fann (Kinésithérapie Intensive).</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Services & Tarifs Section -->
+        <section id="services" class="services-section">
+            <div class="container">
+                <div class="section-header text-center">
+                    <span class="section-subtitle">Nos spécialités</span>
+                    <h2>Prestations de Rééducation & Tarifs</h2>
+                    <p class="section-description">Sélectionnez une discipline pour lire sa fiche détaillée, consulter les avis cliniques, ou soumettre vos rapports médicaux.</p>
+                </div>
+                <div class="services-grid mt-3" id="public-services-grid">
+                    <!-- Dynamic services injected here by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- WhatsApp Contact Section -->
+        <section id="contact" class="contact-section">
+            <div class="container">
+                <div class="contact-box bg-glass">
+                    <div class="grid grid-2 gap-2">
+                        <div class="contact-info">
+                            <span class="badge badge-accent">💬 WhatsApp Secrétariat</span>
+                            <h2>Des Questions ? Écrivez-nous sur WhatsApp</h2>
+                            <p>Nos équipes sont à votre entière disposition pour répondre instantanément à toutes vos interrogations directement sur votre smartphone.</p>
+                            
+                            <div class="contact-details-list">
+                                <div class="detail-item">
+                                    <div class="detail-icon"><i data-lucide="map-pin"></i></div>
+                                    <div class="detail-text">
+                                        <h4>Adresse</h4>
+                                        <p>SERAS, Thiès route de KHOMBOLE</p>
+                                    </div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;"><i data-lucide="message-square"></i></div>
+                                    <div class="detail-text">
+                                        <h4>WhatsApp Secrétariat</h4>
+                                        <p class="text-success font-bold" style="font-size: 1.25rem;">+221 77 209 17 25</p>
+                                    </div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-icon"><i data-lucide="mail"></i></div>
+                                    <div class="detail-text">
+                                        <h4>Email</h4>
+                                        <p>contact@cabinetdabakh.sn</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="contact-form-panel">
+                            <h3>Contacter le Cabinet par WhatsApp</h3>
+                            <form id="public-contact-form" class="mt-1">
+                                <div class="form-group">
+                                    <label for="contact-name">Votre Nom complet</label>
+                                    <input type="text" id="contact-name" placeholder="Ex: Seynabou Diop" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="contact-email">Votre Email</label>
+                                    <input type="email" id="contact-email" placeholder="seynabou@gmail.com" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="contact-message">Votre message</label>
+                                    <textarea id="contact-message" placeholder="Quelle est votre demande clinique ?" rows="4" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-full mt-1" style="background-color:#10b981; color:#fff; border-color:#10b981;">
+                                    <i data-lucide="send"></i> Envoyer via WhatsApp
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Location Section -->
+        <section id="location" class="location-section" style="padding: 40px 0;">
+            <div class="container">
+                <div class="section-header text-center">
+                    <span class="section-subtitle">Localisation</span>
+                    <h2>Où nous trouver ?</h2>
+                    <p class="section-description">Consultez la carte ci-dessous pour vous rendre facilement au CABINET PARAMÉDICAL DABAKH.</p>
+                </div>
+                <div class="map-container mt-3" style="border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); border: 1px solid var(--color-border); height: 400px;">
+                    <iframe 
+                        src="https://maps.google.com/maps?q=14.7715443,-16.9001491&hl=fr&z=15&output=embed" 
+                        width="100%" 
+                        height="100%" 
+                        style="border:0;" 
+                        allowfullscreen="" 
+                        loading="lazy" 
+                        referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="footer-bottom text-center">
+                <p>&copy; 2026 Cabinet Paramédical DABAKH. Tous droits réservés. Agréé par le Ministère de la Santé du Sénégal.</p>
+            </div>
+        </footer>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!--          2. AUTHENTIFICATION VIEWS         -->
+    <!-- ========================================== -->
+    <div id="auth-page" class="view-hidden">
+        <div class="auth-container">
+            <div class="auth-box bg-glass">
+                <div class="auth-logo text-center">
+                    <div class="logo flex justify-center align-center">
+                        <div class="logo-icon"><i data-lucide="activity" class="logo-svg"></i></div>
+                        <span class="logo-text">Cabinet<span>Dabakh</span></span>
+                    </div>
+                </div>
+
+                <!-- LOGIN FORM -->
+                <div id="login-form-wrapper" class="auth-form-wrapper">
+                    <h2>Connexion Dossier Patient</h2>
+                    <p class="auth-subtitle">Accédez à votre rééducation, vos rendez-vous et vos statistiques cliniques</p>
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label for="login-phone">Nom complet ou Numéro Téléphone</label>
+                            <input type="text" id="login-phone" required placeholder="Ex: Mouhamadou Diop ou 77 123 45 67">
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">Mot de passe</label>
+                            <input type="password" id="login-password" required placeholder="••••••••">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-full mt-1">Se connecter</button>
+                    </form>
+                    <div class="auth-footer text-center mt-2">
+                        <p>Nouveau patient ? <a href="#" id="link-register" class="text-accent">Créer un dossier patient</a></p>
+                    </div>
+                </div>
+
+                <!-- REGISTER FORM -->
+                <div id="register-form-wrapper" class="auth-form-wrapper hidden">
+                    <h2>Créer mon Dossier Médical</h2>
+                    <p class="auth-subtitle">Enregistrez-vous pour suivre votre rééducation et prendre rendez-vous</p>
+                    <form id="register-form">
+                        <div class="form-group">
+                            <label for="register-name">Nom Complet</label>
+                            <input type="text" id="register-name" required placeholder="Ex: Amadou Ndiaye">
+                        </div>
+                        <div class="form-group">
+                            <label for="register-address">Adresse (Sénégal)</label>
+                            <input type="text" id="register-address" required placeholder="Ex: Point E, Rue 4, Dakar">
+                        </div>
+                        <div class="form-group">
+                            <label for="register-phone">Numéro Téléphone Sénégalais (Wave/Orange Money)</label>
+                            <div class="input-with-addon">
+                                <span class="addon">+221</span>
+                                <input type="tel" id="register-phone" required placeholder="77 123 45 67">
+                            </div>
+                            <div id="phone-validation-feedback" class="validation-feedback mt-05 text-sm"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-password">Mot de passe</label>
+                            <input type="password" id="register-password" required placeholder="Min. 6 caractères">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-full mt-1" id="btn-submit-register">S'inscrire</button>
+                    </form>
+                    <div class="auth-footer text-center mt-2">
+                        <p>Déjà un dossier ? <a href="#" id="link-login" class="text-accent">Se connecter</a></p>
+                    </div>
+                </div>
+
+                <div class="auth-back-home text-center mt-2">
+                    <a href="#" id="auth-btn-back-home" class="text-muted"><i data-lucide="arrow-left" class="inline-icon"></i> Retour au site public</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!--          3. PATIENT PRIVATE DASHBOARD      -->
+    <!-- ========================================== -->
+    <div id="app-dashboard" class="view-hidden">
+        <div class="app-layout">
+
+            <!-- Sidebar Navigation -->
+            <aside class="app-sidebar" id="app-sidebar">
+                <div class="sidebar-header">
+                    <div class="logo">
+                        <div class="logo-icon"><i data-lucide="activity" class="logo-svg"></i></div>
+                        <span class="logo-text">Cabinet<span>Dabakh</span></span>
+                    </div>
+                    <button class="sidebar-close-btn" id="sidebar-close-btn">
+                        <i data-lucide="x"></i>
+                    </button>
+                </div>
+
+                <!-- Profile summary -->
+                <div class="sidebar-user-info bg-glass" id="sidebar-profile-box">
+                    <div class="user-avatar-circle" id="sidebar-user-initials">PA</div>
+                    <div class="user-details">
+                        <h4 id="user-display-name">Patient</h4>
+                        <span class="badge badge-success-outline" id="user-phone-badge">+221 77 000 00 00</span>
+                        <span class="badge badge-secondary mt-05" id="user-address-badge">Dakar, Sénégal</span>
+                    </div>
+                </div>
+
+                <!-- PATIENT SIDEBAR MENU -->
+                <nav class="sidebar-menu" id="sidebar-patient-menu">
+                    <a href="#" class="menu-item active" data-tab="tab-overview">
+                        <i data-lucide="layout-dashboard"></i> <span>Dossier Rééducation</span>
+                    </a>
+                    <a href="#" class="menu-item" data-tab="tab-book-appointment">
+                        <i data-lucide="calendar"></i> <span>Prendre RDV</span>
+                    </a>
+                    <a href="#" class="menu-item" data-tab="tab-diagnostics">
+                        <i data-lucide="file-text"></i> <span>Diagnostics & Études</span>
+                    </a>
+                    <a href="#" class="menu-item" data-tab="tab-history">
+                        <i data-lucide="history"></i> <span>Historique des Soins</span>
+                    </a>
+                    <a href="#" class="menu-item" data-tab="tab-chatbot">
+                        <i data-lucide="bot" class="text-accent"></i> <strong class="text-accent">Copilote Santé Dabakh</strong>
+                    </a>
+                    <div class="menu-divider"></div>
+                    <a href="#" class="menu-item" id="btn-change-patient">
+                        <i data-lucide="users"></i> <span>Changer de Patient</span>
+                    </a>
+                </nav>
+
+                <!-- ADMIN SIDEBAR MENU -->
+                <nav class="sidebar-menu hidden" id="sidebar-admin-menu">
+                    <div class="px-1 mb-1"><span class="badge badge-danger w-full text-center">ACCÈS ADMINISTRATEUR</span></div>
+                    <a href="#" class="menu-item active" data-tab="tab-admin-overview">
+                        <i data-lucide="users"></i> <span>Patients Inscrits</span>
+                    </a>
+                    <a href="#" class="menu-item" data-tab="tab-admin-add-patient">
+                        <i data-lucide="user-plus"></i> <span>Ajouter un Patient</span>
+                    </a>
+                    <a href="#" class="menu-item" data-tab="tab-admin-stats">
+                        <i data-lucide="bar-chart-2"></i> <span>Statistiques</span>
+                    </a>
+                </nav>
+
+                <div class="sidebar-footer">
+                    <button class="btn btn-secondary-outline w-full" id="btn-logout">
+                        <i data-lucide="log-out"></i> Déconnexion
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main App Content Area -->
+            <main class="app-main">
+                <!-- App Top Header -->
+                <header class="app-header flex justify-between align-center">
+                    <div class="flex align-center gap-1">
+                        <button class="sidebar-open-btn" id="sidebar-open-btn">
+                            <i data-lucide="menu"></i>
+                        </button>
+                        <h2 class="page-title" id="app-page-title">Tableau de bord</h2>
+                    </div>
+                    
+                    <!-- Centered Logo inside Dashboard Top Header (Mobile only) -->
+                    <div class="app-header-logo">
+                        <div class="logo">
+                            <div class="logo-icon"><i data-lucide="activity" class="logo-svg"></i></div>
+                            <span class="logo-text">Cabinet<span>Dabakh</span></span>
+                        </div>
+                    </div>
+                    
+                    <div class="app-header-actions flex align-center gap-1">
+                        <div class="header-metric bg-glass px-1 py-05 rounded flex align-center gap-05">
+                            <span class="text-muted text-sm" id="header-patient-id-label">Patient ID :</span>
+                            <span class="text-accent font-bold" id="header-patient-id">#SC-22910</span>
+                        </div>
+                        <div class="user-profile-menu">
+                            <div class="user-avatar-circle" id="header-avatar">PA</div>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="app-content-container">
+
+                    <!-- ================= TAB: OVERVIEW ================= -->
+                    <div id="tab-overview" class="tab-panel active">
+                        <!-- Stat Graph Widgets in Dashboard -->
+                        <div class="grid grid-3 gap-15">
+                            <div class="metric-card bg-glass">
+                                <div class="flex justify-between align-center">
+                                    <span class="metric-label">Prochaine Séance</span>
+                                    <i data-lucide="calendar" class="text-accent"></i>
+                                </div>
+                                <h3 class="metric-value text-accent" id="overview-next-appointment">Aucun</h3>
+                                <span class="metric-desc" id="overview-next-appointment-sub">Planifiez une rééducation ci-dessous</span>
+                            </div>
+                            
+                            <!-- Graph Widget 1: Mobility Status -->
+                            <div class="metric-card bg-glass flex flex-column justify-between">
+                                <div class="flex justify-between align-center">
+                                    <span class="metric-label">Mobilité Réduite Initiale</span>
+                                    <i data-lucide="alert-triangle" class="text-danger"></i>
+                                </div>
+                                <div class="flex align-center gap-1 my-1">
+                                    <svg width="40" height="40" viewBox="0 0 36 36">
+                                        <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="4"/>
+                                        <circle cx="18" cy="18" r="15" fill="none" stroke="var(--color-danger)" stroke-width="4" stroke-dasharray="94.2" stroke-dashoffset="23.5" transform="rotate(-90 18 18)"/>
+                                    </svg>
+                                    <div>
+                                        <h4 class="text-danger" style="font-size:1.15rem; font-weight:800;">75% Admis</h4>
+                                        <span class="text-xs text-muted">Perte de la marche</span>
+                                    </div>
+                                </div>
+                                <span class="metric-desc">Paralysies motrices initiales</span>
+                            </div>
+
+                            <!-- Graph Widget 2: Recovery Rate -->
+                            <div class="metric-card bg-glass flex flex-column justify-between">
+                                <div class="flex justify-between align-center">
+                                    <span class="metric-label">Réussite Kinésithérapie</span>
+                                    <i data-lucide="trending-up" class="text-success"></i>
+                                </div>
+                                <div class="flex align-center gap-1 my-1">
+                                    <svg width="40" height="40" viewBox="0 0 36 36">
+                                        <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="4"/>
+                                        <circle cx="18" cy="18" r="15" fill="none" stroke="var(--color-success)" stroke-width="4" stroke-dasharray="94.2" stroke-dashoffset="11.8" transform="rotate(-90 18 18)"/>
+                                    </svg>
+                                    <div>
+                                        <h4 class="text-success" style="font-size:1.15rem; font-weight:800;">87.5% Réussite</h4>
+                                        <span class="text-xs text-muted">Marche retrouvée</span>
+                                    </div>
+                                </div>
+                                <span class="metric-desc">Patients autonomes après traitement</span>
+                            </div>
+                        </div>
+
+                        <!-- Main Dashboard Grid -->
+                        <div class="grid grid-2 gap-2 mt-2">
+                            <!-- Quick Book Card -->
+                            <div class="card bg-glass flex flex-column justify-between">
+                                <div class="card-header">
+                                    <h3>🏥 Séance de Rééducation Express</h3>
+                                    <p class="text-muted text-sm">Sélectionnez le créneau de votre prochaine séance clinique auprès de nos kinésithérapeutes.</p>
+                                </div>
+                                <div class="card-body mt-1 flex justify-center align-center">
+                                    <button class="btn btn-primary btn-lg" onclick="appSwitchTab('tab-book-appointment')">
+                                        <i data-lucide="calendar-plus" class="inline-icon"></i> Planifier ma Séance en Ligne
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Interactive Quick Diagnostic -->
+                            <div class="card bg-glass">
+                                <div class="card-header">
+                                    <h3>📂 Envoyer un Rapport ou Cliché</h3>
+                                    <p class="text-muted text-sm">Transmettez une ordonnance, une radiographie de fracture, ou une échographie musculaire pour l'étude du Cabinet.</p>
+                                </div>
+                                <div class="card-body mt-1">
+                                    <button class="btn btn-secondary w-full" onclick="appSwitchTab('tab-diagnostics')">
+                                        <i data-lucide="upload-cloud" class="inline-icon"></i> Soumettre mes Clichés & Analyses
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Active Appointment ticket -->
+                        <div class="mt-2" id="dashboard-ticket-section" style="display:none;">
+                            <div class="card bg-glass border-highlight">
+                                <div class="card-header flex justify-between align-center">
+                                    <h3 class="text-accent">🎟️ Votre Ticket de Séance Clinique</h3>
+                                    <button class="btn btn-text btn-sm" onclick="printTicket()"><i data-lucide="printer" class="inline-icon"></i> Imprimer / Enregistrer</button>
+                                </div>
+                                <div class="card-body">
+                                    <div class="ticket-container bg-dark p-15 rounded">
+                                        <div class="grid grid-2 gap-1">
+                                            <div>
+                                                <span class="text-muted text-sm">PATIENT DE DABAKH</span>
+                                                <h4 id="ticket-patient-name" class="mt-02">Amadou Ndiaye</h4>
+                                                <p id="ticket-patient-phone" class="text-sm text-muted">+221 77 123 45 67</p>
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="badge badge-accent" id="ticket-status">CONFIRMÉ</span>
+                                            </div>
+                                        </div>
+                                        <div class="menu-divider my-1"></div>
+                                        <div class="grid grid-3 gap-1">
+                                            <div>
+                                                <span class="text-muted text-sm">RÉÉDUCATION</span>
+                                                <h5 id="ticket-service-name" class="mt-02">Physiothérapie</h5>
+                                            </div>
+                                            <div>
+                                                <span class="text-muted text-sm">DATE</span>
+                                                <h5 id="ticket-date" class="mt-02">12/06/2026</h5>
+                                            </div>
+                                            <div>
+                                                <span class="text-muted text-sm">CRENEAU</span>
+                                                <h5 id="ticket-time" class="mt-02">10h30</h5>
+                                            </div>
+                                        </div>
+                                        <div class="menu-divider my-1"></div>
+                                        <div class="flex justify-between align-center">
+                                            <div class="ticket-qr-section flex align-center gap-1">
+                                                <div id="ticket-qr" class="qr-code-placeholder">
+                                                    <svg width="60" height="60" viewBox="0 0 29 29" style="background:#fff; padding:3px; border-radius:3px;">
+                                                        <path d="M0 0h7v7H0zm1 1v5h5V1zm8 0h1v1H9zm1 0h1v1h-1zm1 0h1v1h-1zm2 0h1v1h-1zm1 0h3v1h-3zm4 0h1v1h-1zm1 0h1v2h-1v-1zm0 2h1v1h-1zm1-2h3v3h-3zm-14 3h1v1H2zm1 0h1v1H3zm1 0h1v1H4zm3-1h1v1H7zm1 0h1v1H8zm4 0h1v1h-1zm1 0h2v1h-2zm4 0h1v1h-1zm1 0h1v1h-1zm0 2h1v1h-1zm1-1h1v1h-1zm1 0h1v1h-1zm-13 2v1H2v1h1v-1h2v-1zm5 0h1v2H9v-1h1zm4 0h1v1h-1zm2 0h2v1h-2zm-15 4h7v7H0zm1 1v5h5v-5zm17-1h1v2h-1zm1 0h1v1h-1zm1 0h3v1h-3zm-5 2h2v1h-2zm4 0h1v1h-1zm1 0h1v1h-1zm-7 1h1v1h-1zm3 0h1v1h-1zm5 0h1v2h-1v-1zm-10 1h2v1h-2zm5 0h1v1h-1zm-2 2h2v1h-2zm4 0h3v1h-3z" fill="#000"/>
+                                                    </svg>
+                                                </div>
+                                                <span class="text-xs text-muted">Présentez ce QR Code lors de votre séance. Notification de confirmation envoyée automatiquement au cabinet (77 209 17 25).</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================= TAB: BOOK APPOINTMENT ================= -->
+                    <div id="tab-book-appointment" class="tab-panel">
+                        <div class="grid grid-2 gap-2">
+                            <!-- Booking Calendar & Service selection -->
+                            <div class="card bg-glass">
+                                <div class="card-header">
+                                    <h3>📅 Planifier ma Séance Clinique</h3>
+                                    <p class="text-muted text-sm">Prenez rendez-vous directement ou passez un appel direct à notre équipe administrative.</p>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Two interactive buttons requirement -->
+                                    <div class="grid grid-2 gap-1 mb-15">
+                                        <a href="tel:+221772091725" class="btn btn-secondary w-full" id="btn-call-direct" style="border-color: rgba(6,182,212,0.3);">
+                                            <i data-lucide="phone-call" class="text-accent"></i> Secrétariat : 77 209 17 25
+                                        </a>
+                                        <button class="btn btn-primary w-full" type="button" id="btn-scroll-to-booking">
+                                            <i data-lucide="calendar"></i> Prendre RDV en Ligne
+                                        </button>
+                                    </div>
+
+                                    <form id="appointment-booking-form" class="mt-1">
+                                        <div class="form-group">
+                                            <label for="book-service">Sélectionnez la Spécialité de Rééducation</label>
+                                            <select id="book-service" class="w-full form-select-custom" required>
+                                                <!-- Injected dynamically by JS -->
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="book-date">Choisissez une Date</label>
+                                            <input type="date" id="book-date" class="w-full input-date-custom" required>
+                                            <span class="input-tip">Réservations ouvertes du lundi au samedi.</span>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label>Sélectionnez un horaire disponible (08h00 - 13h00)</label>
+                                            <div class="time-slots-grid mt-05" id="time-slots-container">
+                                                <!-- Dynamic time slots injected by JS -->
+                                            </div>
+                                            <input type="hidden" id="selected-time-slot" required>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary w-full mt-1" id="btn-submit-booking">Valider le Rendez-vous</button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Selected Service Preview / Info -->
+                            <div class="card bg-glass flex flex-column justify-between">
+                                <div class="card-header">
+                                    <h3>ℹ️ Informations Service Sélectionné</h3>
+                                </div>
+                                <div class="card-body flex-grow flex flex-column justify-between mt-1">
+                                    <div id="booking-service-preview" class="service-preview-empty">
+                                        <div class="text-center p-3 text-muted">
+                                            <i data-lucide="info" style="width:48px; height:48px; margin:0 auto 12px;"></i>
+                                            <p>Veuillez choisir un service à gauche pour afficher ses détails, tarifs et avis patients.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================= TAB: DIAGNOSTICS ================= -->
+                    <div id="tab-diagnostics" class="tab-panel">
+                        <div class="grid grid-2 gap-2">
+                            <!-- Submit Diagnostic -->
+                            <div class="card bg-glass">
+                                <div class="card-header">
+                                    <h3>🔬 Transmettre des Analyses / Examens</h3>
+                                    <p class="text-muted text-sm">Renseignez vos symptômes et attachez des photos de vos ordonnances de kinésithérapie, rapports d'examens ou radiographie.</p>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Dynamic Associate Service Trigger -->
+                                    <div class="mb-1">
+                                        <button type="button" class="btn btn-secondary w-full" id="btn-associate-service-trigger">
+                                            <i data-lucide="link" class="inline-icon text-accent"></i> Associer un Service / Afficher les Spécialités
+                                        </button>
+                                    </div>
+
+                                    <form id="diagnostic-form" class="mt-1">
+                                        <div class="form-group hidden" id="diag-service-group">
+                                            <label for="diag-service">Service / Spécialité Médicale Associée</label>
+                                            <select id="diag-service" class="w-full form-select-custom" required>
+                                                <!-- Injected dynamically by JS -->
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="diag-symptoms">Description de vos Symptômes ou Historique</label>
+                                            <textarea id="diag-symptoms" class="w-full" placeholder="Décrivez brièvement votre perte de mobilité, motif clinique ou le type d'examen fourni..." rows="4" required></textarea>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label>Attacher le document médical (Photo d'analyse, Radio, Échographie)</label>
+                                            <div class="upload-dropzone mt-05" id="diag-dropzone">
+                                                <i data-lucide="upload-cloud" class="upload-icon"></i>
+                                                <p class="upload-text">Glissez-déposez ou cliquez pour charger votre fichier</p>
+                                                <p class="upload-subtext">Formats acceptés : JPG, PNG (Simulé)</p>
+                                                <input type="file" id="diag-file-input" class="hidden" accept="image/*">
+                                            </div>
+                                            <div id="upload-preview-container" class="upload-preview-wrapper hidden">
+                                                <img id="upload-preview" src="" alt="Aperçu document">
+                                                <button type="button" class="btn btn-danger btn-sm mt-05" onclick="removeUploadedFile()">Supprimer</button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Diagnostic simulation loading state -->
+                                        <div id="diagnostic-scanner-loader" class="scanner-loader hidden">
+                                            <div class="scanner-laser"></div>
+                                            <p class="mt-1 text-center font-bold text-accent">Analyse clinique du cliché par l'IA...</p>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary w-full mt-1" id="btn-submit-diagnostic">Soumettre pour Étude au Cabinet</button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- List of submitted diagnostics -->
+                            <div class="card bg-glass">
+                                <div class="card-header">
+                                    <h3>📁 Vos Diagnostics Soumis</h3>
+                                    <p class="text-muted text-sm">Retrouvez l'état de l'analyse de vos examens transmis en ligne au cabinet.</p>
+                                </div>
+                                <div class="card-body mt-1">
+                                    <div class="diagnostics-list-container" id="patient-diagnostics-list">
+                                        <!-- Dynamic diagnostics list injected by JS -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================= TAB: HISTORY ================= -->
+                    <div id="tab-history" class="tab-panel">
+                        <div class="card bg-glass">
+                            <div class="card-header flex justify-between align-center">
+                                <h3>📜 Historique Complet des Rendez-vous & Consultations</h3>
+                                <button class="btn btn-secondary btn-sm" id="btn-clear-history">Effacer l'historique local</button>
+                            </div>
+                            <div class="card-body mt-1">
+                                <div class="table-responsive">
+                                    <table class="history-table w-full">
+                                        <thead>
+                                            <tr>
+                                                <th>Service</th>
+                                                <th>Date</th>
+                                                <th>Heure</th>
+                                                <th>Spécialiste</th>
+                                                <th>Statut</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="history-table-body">
+                                            <!-- Dynamic table rows injected by JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="history-empty-message" class="text-center p-3 text-muted">
+                                    <i data-lucide="history" style="width:48px; height:48px; margin:0 auto 12px;"></i>
+                                    <p>Vous n'avez aucun rendez-vous passé ou planifié enregistré dans votre historique.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================= TAB: INTELLIGENT CHATBOT ================= -->
+                    <div id="tab-chatbot" class="tab-panel">
+                        <div class="card bg-glass flex flex-column" style="height: calc(100vh - 200px); min-height:480px;">
+                            <div class="card-header flex align-center gap-1" style="border-bottom:1px solid var(--color-border); padding-bottom:16px;">
+                                <div class="logo-icon bg-accent" style="color:#000;"><i data-lucide="bot"></i></div>
+                                <div>
+                                    <h3>Copilote Santé IA - CABINET PARAMÉDICAL DABAKH</h3>
+                                    <span class="text-xs text-muted">Assistant interactif pour des réponses médicales rapides & conseils santé</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Chatbot Messages area -->
+                            <div class="chat-messages-box flex-grow p-15 flex flex-column gap-1 overflow-y-auto" id="dashboard-chat-container" style="background: rgba(5, 8, 16, 0.4); max-height: 280px;">
+                                <div class="chat-bubble bot-bubble">
+                                    <div class="chat-sender">🤖 Assistant Santé Dabakh</div>
+                                    <p>Bonjour <strong><span class="user-placeholder-name">Patient</span></strong>. Je suis le copilote d'assistance du CABINET PARAMÉDICAL DABAKH. Je suis à votre service pour vous donner des conseils de santé et répondre à des questions faciles (mal de dos, entorse, rôle de la rééducation post-AVC, etc.).</p>
+                                    <p class="text-xs text-accent mt-05">Essayez de me demander : "Comment soigner un mal de dos ?" ou "Qu'est-ce que la kinésithérapie ?"</p>
+                                </div>
+                            </div>
+
+                            <!-- Chatbot input form -->
+                            <form id="dashboard-chat-form" class="flex gap-05 p-1 bg-glass" style="border:none; border-top:1px solid var(--color-border); border-radius:0;">
+                                <input type="text" id="dashboard-chat-input" placeholder="Posez une question sur votre santé ou vos douleurs..." required>
+                                <button type="submit" class="btn btn-primary" style="padding:14px 28px;">
+                                    <i data-lucide="send"></i> Envoyer
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- ================= TAB: ADMIN PORTAL OVERVIEW ================= -->
+                    <div id="tab-admin-overview" class="tab-panel">
+                        <div class="grid grid-3 gap-15">
+                            <div class="metric-card bg-glass">
+                                <div class="flex justify-between align-center">
+                                    <span class="metric-label">Total Patients Inscrits</span>
+                                    <i data-lucide="users" class="text-accent"></i>
+                                </div>
+                                <h3 class="metric-value text-accent" id="admin-total-patients">0</h3>
+                                <span class="metric-desc">Enregistrés dans la base Cabinet</span>
+                            </div>
+                            <div class="metric-card bg-glass">
+                                <div class="flex justify-between align-center">
+                                    <span class="metric-label">Rendez-vous Actifs</span>
+                                    <i data-lucide="calendar" class="text-success"></i>
+                                </div>
+                                <h3 class="metric-value text-success" id="admin-total-appointments">0</h3>
+                                <span class="metric-desc">Séances planifiées</span>
+                            </div>
+                            <div class="metric-card bg-glass flex align-center justify-center">
+                                <button class="btn btn-primary w-full" id="btn-export-patients">
+                                    <i data-lucide="download"></i> Exporter la Liste (CSV)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Patients List Table -->
+                        <div class="card bg-glass mt-2">
+                            <div class="card-header flex justify-between align-center">
+                                <h3>👥 Base de Données des Patients</h3>
+                                <span class="badge badge-accent">Administration Clinique</span>
+                            </div>
+                            <div class="card-body mt-1">
+                                <div class="table-responsive">
+                                    <table class="history-table w-full">
+                                        <thead>
+                                            <tr>
+                                                <th>Nom Patient</th>
+                                                <th>Téléphone</th>
+                                                <th>Adresse</th>
+                                                <th>Date d'Inscription</th>
+                                                <th>Région</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="admin-patients-table-body">
+                                            <!-- Dynamically injected patient list -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Admin Active Appointments Table -->
+                        <div class="card bg-glass mt-2">
+                            <div class="card-header flex justify-between align-center">
+                                <h3>📅 Rendez-vous Actifs</h3>
+                                <span class="badge badge-success">À venir</span>
+                            </div>
+                            <div class="card-body mt-1">
+                                <div class="table-responsive">
+                                    <table class="history-table w-full">
+                                        <thead>
+                                            <tr>
+                                                <th>Patient</th>
+                                                <th>Spécialité</th>
+                                                <th>Date</th>
+                                                <th>Heure</th>
+                                                <th>Statut</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="admin-active-appointments-body">
+                                            <!-- Dynamically injected -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Admin Received Documents Table -->
+                        <div class="card bg-glass mt-2">
+                            <div class="card-header flex justify-between align-center">
+                                <h3>📂 Documents & Rapports Reçus</h3>
+                                <span class="badge badge-warning">À examiner</span>
+                            </div>
+                            <div class="card-body mt-1">
+                                <div class="table-responsive">
+                                    <table class="history-table w-full">
+                                        <thead>
+                                            <tr>
+                                                <th>Patient</th>
+                                                <th>Symptômes / Motif</th>
+                                                <th>Date de Soumission</th>
+                                                <th>Document</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="admin-received-documents-body">
+                                            <!-- Dynamically injected -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================= TAB: ADMIN PORTAL ADD PATIENT ================= -->
+                    <div id="tab-admin-add-patient" class="tab-panel">
+                        <div class="grid grid-2 gap-2" style="align-items: start;">
+
+                            <!-- Left: Add Patient Form -->
+                            <div class="card bg-glass">
+                                <div class="card-header">
+                                    <div class="flex align-center gap-1">
+                                        <div class="logo-icon" style="background: rgba(14,165,233,0.15); color: var(--color-primary);">
+                                            <i data-lucide="user-plus"></i>
+                                        </div>
+                                        <div>
+                                            <h3>Créer un Dossier Patient</h3>
+                                            <p class="text-muted text-sm">Le patient pourra se connecter avec son numéro et le mot de passe défini.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body mt-1">
+                                    <form id="admin-add-patient-form" novalidate>
+
+                                        <!-- Row: Prenom / Nom -->
+                                        <div class="grid grid-2 gap-1">
+                                            <div class="form-group">
+                                                <label for="admin-new-name">
+                                                    <i data-lucide="user" class="inline-icon"></i> Nom Complet <span class="required-star">*</span>
+                                                </label>
+                                                <input type="text" id="admin-new-name" required placeholder="Ex: Fatou Diome">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="admin-new-region">
+                                                    <i data-lucide="map" class="inline-icon"></i> Région
+                                                </label>
+                                                <select id="admin-new-region" class="w-full form-select-custom">
+                                                    <option value="Dakar">Dakar</option>
+                                                    <option value="Thiès">Thiès</option>
+                                                    <option value="Saint-Louis">Saint-Louis</option>
+                                                    <option value="Ziguinchor">Ziguinchor</option>
+                                                    <option value="Kaolack">Kaolack</option>
+                                                    <option value="Touba">Touba</option>
+                                                    <option value="Rufisque">Rufisque</option>
+                                                    <option value="Autre">Autre</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Address -->
+                                        <div class="form-group">
+                                            <label for="admin-new-address">
+                                                <i data-lucide="map-pin" class="inline-icon"></i> Adresse Résidence <span class="required-star">*</span>
+                                            </label>
+                                            <input type="text" id="admin-new-address" required placeholder="Ex: Mermoz, Rue G, Dakar">
+                                        </div>
+
+                                        <!-- Phone -->
+                                        <div class="form-group">
+                                            <label for="admin-new-phone">
+                                                <i data-lucide="phone" class="inline-icon"></i> Numéro WhatsApp sénégalais <span class="required-star">*</span>
+                                            </label>
+                                            <div class="input-with-addon">
+                                                <span class="addon">🇸🇳 +221</span>
+                                                <input type="tel" id="admin-new-phone" required placeholder="77 123 45 67" maxlength="12">
+                                            </div>
+                                            <span class="input-tip">Format : 70, 75, 76, 77, 78 suivi de 7 chiffres</span>
+                                        </div>
+
+                                        <!-- Password -->
+                                        <div class="form-group">
+                                            <label for="admin-new-password">
+                                                <i data-lucide="lock" class="inline-icon"></i> Mot de Passe Patient <span class="required-star">*</span>
+                                            </label>
+                                            <input type="password" id="admin-new-password" required placeholder="Min. 6 caractères" minlength="6">
+                                            <span class="input-tip">Le patient utilisera ce mot de passe pour se connecter.</span>
+                                        </div>
+
+                                        <!-- Privacy notice -->
+                                        <div class="onboarding-privacy" style="margin-bottom: 16px;">
+                                            <i data-lucide="shield-check" style="width:16px;height:16px;color:var(--color-success);flex-shrink:0;"></i>
+                                            <p>Les identifiants sont stockés localement et sécurisés. Le patient pourra se connecter immédiatement après création.</p>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary w-full btn-lg" id="btn-admin-create-patient">
+                                            <i data-lucide="user-plus"></i> Créer le Dossier Patient
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Right: Instructions + Login Info -->
+                            <div class="flex flex-column gap-15">
+
+                                <!-- How patient connects -->
+                                <div class="card bg-glass">
+                                    <div class="card-header">
+                                        <h3><i data-lucide="info" class="inline-icon text-accent"></i> Comment le Patient se Connecte</h3>
+                                    </div>
+                                    <div class="card-body mt-1">
+                                        <ol class="admin-steps-list">
+                                            <li>
+                                                <span class="step-num">1</span>
+                                                <div>
+                                                    <strong>S'inscrire sur la plateforme</strong>
+                                                    <p class="text-muted text-sm">Le patient remplit le formulaire d'accueil avec son nom, téléphone et domicile.</p>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <span class="step-num">2</span>
+                                                <div>
+                                                    <strong>Cliquer sur "Connexion"</strong>
+                                                    <p class="text-muted text-sm">Sur la page d'accueil, le patient clique sur le bouton Connexion dans le menu.</p>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <span class="step-num">3</span>
+                                                <div>
+                                                    <strong>Entrer son numéro + mot de passe</strong>
+                                                    <p class="text-muted text-sm">Le patient entre le numéro de téléphone et le mot de passe que vous avez défini ci-contre.</p>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <span class="step-num">4</span>
+                                                <div>
+                                                    <strong>Accès au tableau de bord</strong>
+                                                    <p class="text-muted text-sm">Le patient accède instantanément à son dossier de rééducation, ses RDV et son historique.</p>
+                                                </div>
+                                            </li>
+                                        </ol>
+                                    </div>
+                                </div>
+
+                                <!-- Security reminder (NO credentials shown in frontend) -->
+                                <div class="card bg-glass" style="border-color: rgba(239,68,68,0.2);">
+                                    <div class="card-header">
+                                        <h3><i data-lucide="shield-alert" class="inline-icon" style="color: var(--color-danger);"></i> Sécurité Administrateur</h3>
+                                    </div>
+                                    <div class="card-body mt-1">
+                                        <div class="flex align-center gap-1 p-1 rounded" style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.15);">
+                                            <i data-lucide="lock" style="color:var(--color-danger); width:20px; height:20px; flex-shrink:0;"></i>
+                                            <p class="text-sm" style="margin:0; line-height:1.5;">Vos identifiants d'administration sont <strong>confidentiels</strong>. Ne les partagez jamais et ne les notez pas dans le code source.</p>
+                                        </div>
+                                        <ul class="text-sm text-muted mt-1" style="padding-left:18px; line-height:1.8;">
+                                            <li>Conservez vos identifiants dans un gestionnaire de mots de passe sécurisé.</li>
+                                            <li>Ne communiquez jamais vos accès à vos patients.</li>
+                                            <li>Changez régulièrement votre mot de passe administrateur.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================= TAB: ADMIN STATS ================= -->
+                    <div id="tab-admin-stats" class="tab-panel">
+                        <div class="card bg-glass">
+                            <div class="card-header flex justify-between align-center">
+                                <h3>📈 Évolution des Inscriptions Patients</h3>
+                                <span class="badge badge-accent">7 derniers jours</span>
+                            </div>
+                            <div class="card-body mt-2">
+                                <div style="background: rgba(5,8,16,0.5); border: 1px solid var(--color-border); border-radius: 8px; padding: 20px; height: 350px; position: relative; overflow-x: auto;">
+                                    <svg id="admin-stats-svg" width="100%" height="100%" style="min-width: 600px;">
+                                    </svg>
+                                </div>
+                                <div class="mt-1 flex gap-1 justify-center align-center">
+                                    <div class="flex align-center gap-05">
+                                        <div style="width:12px;height:12px;background:var(--color-primary);border-radius:2px;"></div>
+                                        <span class="text-xs text-muted">Nombre d'inscrits par jour</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-3 gap-15 mt-2">
+                            <div class="metric-card bg-glass">
+                                <div class="flex justify-between align-center">
+                                    <span class="metric-label">Total Patients</span>
+                                    <i data-lucide="users" class="text-accent"></i>
+                                </div>
+                                <div class="metric-value" id="stats-total-patients">0</div>
+                            </div>
+                            <div class="metric-card bg-glass">
+                                <div class="flex justify-between align-center">
+                                    <span class="metric-label">RDV Confirmés</span>
+                                    <i data-lucide="calendar-check" class="text-success"></i>
+                                </div>
+                                <div class="metric-value text-success" id="stats-total-rdv">0</div>
+                            </div>
+                            <div class="metric-card bg-glass">
+                                <div class="flex justify-between align-center">
+                                    <span class="metric-label">Documents Reçus</span>
+                                    <i data-lucide="file-text" class="text-warning"></i>
+                                </div>
+                                <div class="metric-value" style="color: var(--color-warning);" id="stats-total-docs">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!--     FLOATING BOOKING CONFIRMATION CARD      -->
+    <!-- ========================================== -->
+    <div id="booking-floating-confirm" class="booking-confirm-card bg-glass hidden">
+        <div class="confirm-card-content">
+            <div class="flex align-center gap-1">
+                <div class="confirm-badge-icon bg-accent"><i data-lucide="calendar"></i></div>
+                <div>
+                    <h4 class="text-accent font-bold">Séance en cours de planification...</h4>
+                    <p class="text-xs text-muted" id="confirm-card-summary">Physiothérapie le 12/06/2026 à 10:00</p>
+                </div>
+            </div>
+            <div class="confirm-card-actions flex gap-05 mt-1">
+                <button class="btn btn-danger btn-sm flex-grow" type="button" id="btn-cancel-reservation">
+                    <i data-lucide="x"></i> Annuler le RDV
+                </button>
+                <button class="btn btn-success btn-sm flex-grow" type="button" id="btn-confirm-reservation">
+                    <i data-lucide="check"></i> Confirmer le RDV
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!--          4. CABINET ADMIN PHONE SIMULATOR  -->
+    <!-- ========================================== -->
+    <div class="admin-phone-wrapper" id="admin-phone-wrapper">
+        <div class="phone-toggle-btn" id="phone-toggle-btn">
+            <div class="phone-badge" id="phone-unread-count">0</div>
+            <i data-lucide="smartphone"></i>
+            <span>Cabinet Receiver (77 209 17 25)</span>
+        </div>
+        
+        <div class="smartphone bg-dark border-highlight hidden" id="smartphone-body">
+            <div class="smartphone-screen">
+                <!-- Status bar -->
+                <div class="phone-status-bar">
+                    <span class="time">10:15</span>
+                    <span class="carrier">Orange SN 🇸🇳</span>
+                    <div class="icons">
+                        <i data-lucide="wifi"></i>
+                        <i data-lucide="battery"></i>
+                    </div>
+                </div>
+                
+                <!-- Phone Header -->
+                <div class="phone-header bg-glass">
+                    <div class="phone-avatar">D</div>
+                    <div class="phone-info">
+                        <h4>Réception CABINET PARAMÉDICAL DABAKH</h4>
+                        <span class="number">77 209 17 25</span>
+                    </div>
+                    <button class="phone-close-btn" id="phone-close-btn-icon"><i data-lucide="chevron-down"></i></button>
+                </div>
+                
+                <!-- Phone Content (SMS Inbox list) -->
+                <div class="phone-content" id="phone-sms-container">
+                    <div class="sms-system-message">
+                        <p>📟 Terminal SMS activé. Les notifications du cabinet pour le numéro <strong>77 209 17 25</strong> s'afficheront ici en temps réel pour démonstration.</p>
+                    </div>
+                </div>
+                
+                <!-- Phone Footer / Home indicator -->
+                <div class="phone-footer">
+                    <div class="home-indicator"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Script -->
+    <script src="script.js"></script>
+</body>
+
+</html>
