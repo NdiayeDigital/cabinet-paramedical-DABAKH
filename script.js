@@ -10,7 +10,7 @@ function verifyAdmin(user, pass) {
 
 // ── SUPABASE CLOUD BACKEND ────────────────────────────────────────────────
 const SUPABASE_URL = "https://wotfalrbvttquqshitfs.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_1gydclg-c2L1PKP4aTk-0Q_LD7FxNwh";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvdGZhbHJidnR0cXVxc2hpdGZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDEzNjEsImV4cCI6MjA5NjQxNzM2MX0.j_KH8OelhDukyhlaHujVveDNWz1QEl8iPkJcx4K5hDw";
 let supabaseClient = null;
 if (window.supabase) {
     try {
@@ -23,11 +23,12 @@ if (window.supabase) {
 async function syncFromSupabase() {
     if (!supabaseClient) return;
     try {
-        const { data: dbPatients } = await supabaseClient.from('profiles').select('*');
+        const { data: dbPatients, error: errP } = await supabaseClient.from('profiles').select('*');
+        if (errP) console.error('Supabase profiles error:', errP);
         if (dbPatients && dbPatients.length > 0) {
             registeredPatients = dbPatients.map(p => ({
-                name: p.full_name, phone: p.phone, address: p.address,
-                password: p.password_hash, registeredAt: p.created_at, region: p.region || 'Dakar'
+                name: p.name || p.full_name, phone: p.phone, address: p.address,
+                password: p.password_hash, registeredAt: p.registered_at || p.created_at, region: p.region || 'Dakar'
             }));
             localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
         }
@@ -95,10 +96,19 @@ async function syncFromSupabase() {
 
 async function savePatientRemote(p) {
     if (!supabaseClient) return;
-    await supabaseClient.from('profiles').upsert([{
-        phone: p.phone, full_name: p.name, address: p.address,
-        password_hash: p.password, region: p.region || 'Dakar', created_at: p.registeredAt || new Date().toISOString()
+    const { error } = await supabaseClient.from('profiles').upsert([{
+        name: p.name,
+        phone: p.phone,
+        address: p.address,
+        password_hash: p.password,
+        region: p.region || 'Dakar',
+        registered_at: p.registeredAt || new Date().toISOString()
     }], { onConflict: 'phone' });
+    if (error) console.error('Erreur sauvegarde patient Supabase:', error);
+    else {
+        // Rafraîchir l'admin si connecté
+        if (isAdminMode && typeof renderProfilesTable === 'function') renderProfilesTable();
+    }
 }
 
 async function saveAppointmentRemote(a) {
