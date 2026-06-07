@@ -8,6 +8,16 @@ function verifyAdmin(user, pass) {
     return btoa(user + ":" + pass) === ADMIN_HASH;
 }
 
+// Hachage sécurisé SHA-256 pour les mots de passe patients
+async function hashPassword(password) {
+    if (!password) return "";
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // ── SUPABASE CLOUD BACKEND ────────────────────────────────────────────────
 const SUPABASE_URL = "https://wotfalrbvttquqshitfs.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvdGZhbHJidnR0cXVxc2hpdGZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDEzNjEsImV4cCI6MjA5NjQxNzM2MX0.j_KH8OelhDukyhlaHujVveDNWz1QEl8iPkJcx4K5hDw";
@@ -712,7 +722,7 @@ function setupAuthHandlers() {
     // Inscription Patient
     const registerForm = document.getElementById("register-form");
     if (registerForm) {
-        registerForm.addEventListener("submit", (e) => {
+        registerForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const name = document.getElementById("register-name").value.trim();
             const address = document.getElementById("register-address").value.trim();
@@ -739,11 +749,13 @@ function setupAuthHandlers() {
                 return;
             }
 
+            const hashedPassword = await hashPassword(password);
+
             const newPatientObj = {
                 name,
                 address,
                 phone: phoneRes.formatted,
-                password, // MUST SAVE PASSWORD
+                password: hashedPassword,
                 registeredAt: new Date().toISOString(),
                 region: "Dakar"
             };
@@ -849,9 +861,10 @@ function setupAuthHandlers() {
                 }
             }
 
-            // Si le patient a un mot de passe (créé par l'admin), vérifier le mot de passe
+            // Si le patient a un mot de passe, vérifier le mot de passe (SHA-256 ou brut d'origine)
             if (patientMatch.password) {
-                if (patientMatch.password !== pass) {
+                const hashedPass = await hashPassword(pass);
+                if (patientMatch.password !== hashedPass && patientMatch.password !== pass) {
                     alert("Mot de passe incorrect. Veuillez vérifier vos identifiants.");
                     return;
                 }
