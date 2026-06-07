@@ -298,7 +298,7 @@ let uploadedFileBase64 = "";
 document.addEventListener("DOMContentLoaded", async () => {
     initLucideIcons();
     await syncFromSupabase();
-    checkOnboarding(); // 🔐 Gate: show onboarding if not yet registered
+    checkOnboarding();
     setupNavigation();
     setupAuthHandlers();
     setupSmsSimulator();
@@ -311,7 +311,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     checkAuthState();
     refreshAdminSMSLogs();
     setupAdminPortalHandlers();
-    setupOnboarding();
 
     window.scrollTo({ top: 0, behavior: 'instant' });
 });
@@ -322,20 +321,11 @@ function initLucideIcons() {
     }
 }
 
-// ── 0. ONBOARDING GATE ────────────────────────────────────────────────────
+// ── 0. PAGE ROUTER ────────────────────────────────────────────────────
 
 /** Affiche uniquement la page demandée, cache toutes les autres */
 function showPage(pageId) {
-    const visitor = JSON.parse(localStorage.getItem('daba_visitor'));
-    const user = JSON.parse(localStorage.getItem('daba_user'));
-    const isRegistered = (visitor && visitor.prenom && visitor.nom && visitor.phone && visitor.domicile) || user;
-
-    // Strict security lock: if not registered/logged-in, only onboarding page is permitted!
-    if (!isRegistered) {
-        pageId = 'onboarding-page';
-    }
-
-    ['onboarding-page', 'landing-page', 'auth-page', 'app-dashboard']
+    ['landing-page', 'auth-page', 'app-dashboard']
         .forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -351,211 +341,24 @@ function showPage(pageId) {
 
 /** Transition fluide vers la page d'accueil */
 function goToLanding() {
-    const onboardingPage = document.getElementById('onboarding-page');
-    const landingPage    = document.getElementById('landing-page');
-
-    // Fade out onboarding
-    onboardingPage.style.transition = 'opacity 0.35s ease';
-    onboardingPage.style.opacity = '0';
-
-    setTimeout(() => {
-        // Cacher onboarding, afficher landing
-        onboardingPage.classList.remove('view-active');
-        onboardingPage.classList.add('view-hidden');
-        onboardingPage.style.opacity = '';
-        onboardingPage.style.transition = '';
-
-        // Allow landing page display by temporary bypass for goToLanding
-        landingPage.classList.remove('view-hidden');
-        landingPage.classList.add('view-active');
-        landingPage.style.opacity = '0';
-        landingPage.style.transition = 'opacity 0.35s ease';
-
-        // Double requestAnimationFrame pour déclencher le fade-in
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                landingPage.style.opacity = '1';
-                setTimeout(() => {
-                    landingPage.style.opacity = '';
-                    landingPage.style.transition = '';
-                }, 380);
-            });
-        });
-
-        window.scrollTo({ top: 0, behavior: 'instant' });
-    }, 350);
+    showPage('landing-page');
+    window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
-/** Vérifie si l'utilisateur est déjà inscrit au chargement */
 function checkOnboarding() {
-    const visitor = JSON.parse(localStorage.getItem('daba_visitor'));
     const user = JSON.parse(localStorage.getItem('daba_user'));
-    const isRegistered = (visitor && visitor.prenom && visitor.nom && visitor.phone && visitor.domicile) || user;
 
-    if (isRegistered) {
-        if (user) {
-            checkAuthState();
-        } else {
-            showPage('landing-page');
-        }
+    if (user) {
+        checkAuthState();
     } else {
-        showPage('onboarding-page');
+        showPage('auth-page');
     }
 }
 
 function setupOnboarding() {
-    const form        = document.getElementById('onboarding-form');
-    const phoneInput  = document.getElementById('ob-phone');
-    const prenomInput = document.getElementById('ob-prenom');
-    const nomInput    = document.getElementById('ob-nom');
-    const domInput    = document.getElementById('ob-domicile');
-    const passwordInput = document.getElementById('ob-password');
-    const submitBtn   = document.getElementById('onboarding-submit-btn');
-    const alreadyBtn  = document.getElementById('onboarding-already-registered');
-
-    if (!form) return;
-
-    // ── Auto-format téléphone sénégalais : 7X XXX XX XX
-    phoneInput.addEventListener('input', () => {
-        let raw = phoneInput.value.replace(/\D/g, '').substring(0, 9);
-        if (raw.length > 2 && raw.length <= 5)      raw = raw.slice(0,2) + ' ' + raw.slice(2);
-        else if (raw.length > 5 && raw.length <= 7) raw = raw.slice(0,2) + ' ' + raw.slice(2,5) + ' ' + raw.slice(5);
-        else if (raw.length > 7)                    raw = raw.slice(0,2) + ' ' + raw.slice(2,5) + ' ' + raw.slice(5,7) + ' ' + raw.slice(7);
-        phoneInput.value = raw;
-        if (phoneInput.value.replace(/\s/g,'').length >= 9) {
-            validateField(phoneInput, validatePhone(phoneInput.value), 'err-phone', 'Numéro invalide. Ex: 77 209 17 25');
-        }
-    });
-
-    // ── Validation en temps réel au blur
-    prenomInput.addEventListener('blur', () =>
-        validateField(prenomInput, prenomInput.value.trim().length >= 2, 'err-prenom', 'Le prénom doit contenir au moins 2 caractères.'));
-    nomInput.addEventListener('blur', () =>
-        validateField(nomInput, nomInput.value.trim().length >= 2, 'err-nom', 'Le nom doit contenir au moins 2 caractères.'));
-    domInput.addEventListener('blur', () =>
-        validateField(domInput, domInput.value.trim().length >= 3, 'err-domicile', 'Veuillez indiquer votre quartier ou commune.'));
-    phoneInput.addEventListener('blur', () =>
-        validateField(phoneInput, validatePhone(phoneInput.value), 'err-phone', 'Numéro invalide. Ex: 77 209 17 25'));
-    if (passwordInput) {
-        passwordInput.addEventListener('blur', () =>
-            validateField(passwordInput, passwordInput.value.trim().length >= 6, 'err-password', 'Le mot de passe doit contenir au moins 6 caractères.'));
-    }
-
-    // ── Soumission du formulaire
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-
-        const prenom   = prenomInput.value.trim();
-        const nom      = nomInput.value.trim();
-        const phone    = phoneInput.value.trim();
-        const domicile = domInput.value.trim();
-        const password = passwordInput ? passwordInput.value.trim() : '';
-
-        // Validation de tous les champs
-        let ok = true;
-
-        if (prenom.length < 2) {
-            validateField(prenomInput, false, 'err-prenom', 'Le prénom doit contenir au moins 2 caractères.');
-            ok = false;
-        } else {
-            validateField(prenomInput, true, 'err-prenom', '');
-        }
-
-        if (nom.length < 2) {
-            validateField(nomInput, false, 'err-nom', 'Le nom doit contenir au moins 2 caractères.');
-            ok = false;
-        } else {
-            validateField(nomInput, true, 'err-nom', '');
-        }
-
-        const phoneRes = validateSenegalPhone(phone);
-        if (!phoneRes.isValid) {
-            validateField(phoneInput, false, 'err-phone', 'Numéro sénégalais invalide. Ex: 77 209 17 25');
-            ok = false;
-        } else {
-            const exists = registeredPatients.some(p => p.phone === phoneRes.formatted);
-            if (exists) {
-                alert("Un dossier patient avec ce numéro de téléphone existe déjà. Veuillez vous connecter.");
-                toggleAuthPage(true, 'login');
-                const loginPhoneInput = document.getElementById("login-phone");
-                if (loginPhoneInput) loginPhoneInput.value = phoneRes.formatted;
-                return;
-            }
-            validateField(phoneInput, true, 'err-phone', '');
-        }
-
-        if (domicile.length < 3) {
-            validateField(domInput, false, 'err-domicile', 'Veuillez indiquer votre quartier ou commune.');
-            ok = false;
-        } else {
-            validateField(domInput, true, 'err-domicile', '');
-        }
-
-        if (password.length < 6) {
-            validateField(passwordInput, false, 'err-password', 'Le mot de passe doit contenir au moins 6 caractères.');
-            ok = false;
-        } else {
-            validateField(passwordInput, true, 'err-password', '');
-        }
-
-        if (!ok) return; // Stopper si erreurs
-
-        // ── Sauvegarde du profil visiteur
-        const visitor = {
-            prenom,
-            nom,
-            phone: phoneRes.formatted,
-            domicile,
-            registeredAt: new Date().toISOString()
-        };
-        localStorage.setItem('daba_visitor', JSON.stringify(visitor));
-
-        // Create new patient dossier
-        const newPatientObj = {
-            name: `${prenom} ${nom}`,
-            address: domicile,
-            phone: phoneRes.formatted,
-            password: password,
-            registeredAt: visitor.registeredAt,
-            region: "Dakar"
-        };
-
-        registeredPatients.push(newPatientObj);
-        localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
-        savePatientRemote(newPatientObj);
-
-        // Log them in immediately!
-        currentUser = newPatientObj;
-        isAdminMode = false;
-        localStorage.setItem('daba_user', JSON.stringify(currentUser));
-        localStorage.setItem('daba_admin_mode', JSON.stringify(isAdminMode));
-
-        triggerSmsAlert("INSCRIPTION PATIENT", `Nouveau patient inscrit (via onboarding).\nNom: ${prenom} ${nom}\nAdresse: ${domicile}\nTel: ${phoneRes.formatted}.`);
-
-        // ── Bouton → état succès
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = `<i data-lucide="check-circle"></i> Inscription réussie !`;
-        submitBtn.style.background = 'var(--color-success)';
-        submitBtn.style.borderColor = 'var(--color-success)';
-        initLucideIcons();
-
-        // ── Transition vers l'espace patient après 900ms
-        setTimeout(() => {
-            const onboardingPage = document.getElementById('onboarding-page');
-            onboardingPage.classList.remove('view-active');
-            onboardingPage.classList.add('view-hidden');
-            checkAuthState();
-            alert(`Félicitations ${prenom} ${nom}, votre dossier patient a été créé avec succès au CABINET PARAMÉDICAL DABAKH !`);
-        }, 900);
-    });
-
-    // ── Bouton "Déjà inscrit"
-    if (alreadyBtn) {
-        alreadyBtn.addEventListener('click', () => {
-            toggleAuthPage(true, 'login');
-        });
-    }
+    // Onboarding has been removed — registration is now handled via auth-page
 }
+
 
 // ── Validation téléphone sénégalais ──────────────────────────────────────
 function validatePhone(val) {
