@@ -135,11 +135,33 @@ async function saveDiagnosticRemote(d) {
 
 async function saveNotificationRemote(notif) {
     if (!supabaseClient) return;
-    await supabaseClient.from('notifications').insert([{
+    const { error } = await supabaseClient.from('notifications').insert([{
         title: notif.title,
         message: notif.message,
         created_at: new Date().toISOString()
     }]);
+    if (error) console.error('Erreur notification Supabase:', error);
+}
+
+// ── SUPABASE STORAGE : Upload fichier médical ─────────────────────────────
+async function uploadFileToSupabase(file, patientPhone) {
+    if (!supabaseClient) return null;
+    try {
+        const ext = file.name.split('.').pop() || 'jpg';
+        const fileName = `${patientPhone.replace(/\s+/g, '')}_${Date.now()}.${ext}`;
+        const { data, error } = await supabaseClient.storage
+            .from('medical-files')
+            .upload(fileName, file, { upsert: true, contentType: file.type });
+        if (error) {
+            console.error('Erreur upload Supabase Storage:', error);
+            return null;
+        }
+        const { data: urlData } = supabaseClient.storage.from('medical-files').getPublicUrl(fileName);
+        return urlData.publicUrl;
+    } catch (e) {
+        console.error('Erreur upload fichier:', e);
+        return null;
+    }
 }
 
 // ── LOCAL STORAGE DB INITS ────────────────────────────────────────────────
@@ -169,6 +191,7 @@ let registeredPatients = safeGetLocalStorage('daba_patients', [
 localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
 
 let pendingBooking = null;
+let uploadedFileUrl = null; // URL Supabase Storage du fichier médical
 
 // ── 1. SERVICES DATA REFERENCE (WITH COMING SOON PHASING) ─────────────────
 const SERVICES_DATA = [
@@ -778,13 +801,27 @@ function setupAuthHandlers() {
                 return;
             }
 
-            // 2. Patient Login Check — par téléphone OU par nom
+            // 2. Patient Login Check — par téléphone OU par nom (local + Supabase fallback)
             let patientMatch = null;
             const phoneRes = validateSenegalPhone(identifier);
 
             if (phoneRes.isValid) {
-                // Recherche par numéro de téléphone
+                // Recherche locale d'abord
                 patientMatch = registeredPatients.find(p => p.phone === phoneRes.formatted);
+                // Fallback Supabase si non trouvé (autre appareil)
+                if (!patientMatch && supabaseClient) {
+                    const { data: remoteP } = await supabaseClient
+                        .from('profiles').select('*').eq('phone', phoneRes.formatted).maybeSingle();
+                    if (remoteP) {
+                        patientMatch = {
+                            name: remoteP.name, phone: remoteP.phone, address: remoteP.address,
+                            password: remoteP.password_hash, registeredAt: remoteP.registered_at, region: remoteP.region
+                        };
+                        // Mettre à jour le cache local
+                        registeredPatients.push(patientMatch);
+                        localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
+                    }
+                }
                 if (!patientMatch) {
                     alert("Aucun dossier patient trouvé pour ce numéro. Veuillez vous inscrire ou contacter le cabinet.");
                     return;
@@ -793,6 +830,19 @@ function setupAuthHandlers() {
                 // Recherche par nom complet (insensible à la casse)
                 const identifierLower = identifier.toLowerCase().trim();
                 patientMatch = registeredPatients.find(p => p.name.toLowerCase().trim() === identifierLower);
+                // Fallback Supabase si non trouvé
+                if (!patientMatch && supabaseClient) {
+                    const { data: remoteP } = await supabaseClient
+                        .from('profiles').select('*').ilike('name', identifier.trim()).maybeSingle();
+                    if (remoteP) {
+                        patientMatch = {
+                            name: remoteP.name, phone: remoteP.phone, address: remoteP.address,
+                            password: remoteP.password_hash, registeredAt: remoteP.registered_at, region: remoteP.region
+                        };
+                        registeredPatients.push(patientMatch);
+                        localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
+                    }
+                }
                 if (!patientMatch) {
                     alert("Aucun dossier patient trouvé pour ce nom. Vérifiez l'orthographe ou utilisez votre numéro de téléphone.");
                     return;
@@ -1367,11 +1417,12 @@ function setupDiagnosticDropzone() {
                     serviceId,
                     serviceName: service.name,
                     symptoms,
-                    fileName: "Document_Medical_Dabakh.jpg",
-                    fileData: uploadedFileBase64,
+                    fileName: uploadedFileUrl ? uploadedFileUrl.split('/').pop() : "Document_Medical_Dabakh.jpg",
+                    fileUrl:  uploadedFileUrl  || null,   // URL Supabase Storage (priorité)
+                    fileData: uploadedFileUrl  ? null : uploadedFileBase64, // base64 seulement si pas d'URL
                     status: "En cours d'étude",
                     createdAt: new Date().toISOString(),
-                    patientName: currentUser ? currentUser.name : "Inconnu",
+                    patientName:  currentUser ? currentUser.name  : "Inconnu",
                     patientPhone: currentUser ? currentUser.phone : "Inconnu"
                 };
 
@@ -1392,19 +1443,31 @@ function setupDiagnosticDropzone() {
 }
 
 function handleUploadedFile(file) {
+    // 1. Prévisualisation locale immédiate
     const reader = new FileReader();
     reader.onload = function(e) {
         uploadedFileBase64 = e.target.result;
+        uploadedFileUrl = null; // reset l'URL Supabase en attendant l'upload
         document.getElementById("diag-dropzone").classList.add("hidden");
         const container = document.getElementById("upload-preview-container");
         container.classList.remove("hidden");
         document.getElementById("upload-preview").src = uploadedFileBase64;
+
+        // 2. Upload en arrière-plan vers Supabase Storage
+        const phone = currentUser ? currentUser.phone : 'anonyme';
+        uploadFileToSupabase(file, phone).then(url => {
+            if (url) {
+                uploadedFileUrl = url;
+                console.log('Fichier médical uploadé dans Supabase Storage:', url);
+            }
+        });
     };
     reader.readAsDataURL(file);
 }
 
 function removeUploadedFile() {
     uploadedFileBase64 = "";
+    uploadedFileUrl = null;
     document.getElementById("diag-file-input").value = "";
     document.getElementById("diag-dropzone").classList.remove("hidden");
     document.getElementById("upload-preview-container").classList.add("hidden");
