@@ -17,9 +17,9 @@ let smsNotifications = JSON.parse(localStorage.getItem('daba_sms')) || [];
 
 // Pre-populated medical database for beautiful dashboard analytics
 let registeredPatients = JSON.parse(localStorage.getItem('daba_patients')) || [
-    { name: "Amadou Ndiaye", phone: "+221 77 123 45 67", address: "Point E, Dakar", registeredAt: "2026-05-10T14:30:00.000Z", region: "Dakar" },
-    { name: "Seynabou Diop", phone: "+221 78 456 12 90", address: "Mermoz, Dakar", registeredAt: "2026-05-15T09:15:00.000Z", region: "Dakar" },
-    { name: "Moussa Fall", phone: "+221 76 789 45 12", address: "Thiès, Sénégal", registeredAt: "2026-05-20T11:45:00.000Z", region: "Thiès" }
+    { name: "Amadou Ndiaye", phone: "+221 77 123 45 67", address: "Point E, Dakar", password: "password123", registeredAt: "2026-05-10T14:30:00.000Z", region: "Dakar" },
+    { name: "Seynabou Diop", phone: "+221 78 456 12 90", address: "Mermoz, Dakar", password: "password123", registeredAt: "2026-05-15T09:15:00.000Z", region: "Dakar" },
+    { name: "Moussa Fall", phone: "+221 76 789 45 12", address: "Thiès, Sénégal", password: "password123", registeredAt: "2026-05-20T11:45:00.000Z", region: "Thiès" }
 ];
 localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
 
@@ -288,6 +288,7 @@ function setupOnboarding() {
     const prenomInput = document.getElementById('ob-prenom');
     const nomInput    = document.getElementById('ob-nom');
     const domInput    = document.getElementById('ob-domicile');
+    const passwordInput = document.getElementById('ob-password');
     const submitBtn   = document.getElementById('onboarding-submit-btn');
     const alreadyBtn  = document.getElementById('onboarding-already-registered');
 
@@ -314,6 +315,10 @@ function setupOnboarding() {
         validateField(domInput, domInput.value.trim().length >= 3, 'err-domicile', 'Veuillez indiquer votre quartier ou commune.'));
     phoneInput.addEventListener('blur', () =>
         validateField(phoneInput, validatePhone(phoneInput.value), 'err-phone', 'Numéro invalide. Ex: 77 209 17 25'));
+    if (passwordInput) {
+        passwordInput.addEventListener('blur', () =>
+            validateField(passwordInput, passwordInput.value.trim().length >= 6, 'err-password', 'Le mot de passe doit contenir au moins 6 caractères.'));
+    }
 
     // ── Soumission du formulaire
     form.addEventListener('submit', (e) => {
@@ -323,6 +328,7 @@ function setupOnboarding() {
         const nom      = nomInput.value.trim();
         const phone    = phoneInput.value.trim();
         const domicile = domInput.value.trim();
+        const password = passwordInput ? passwordInput.value.trim() : '';
 
         // Validation de tous les champs
         let ok = true;
@@ -341,10 +347,19 @@ function setupOnboarding() {
             validateField(nomInput, true, 'err-nom', '');
         }
 
-        if (!validatePhone(phone)) {
+        const phoneRes = validateSenegalPhone(phone);
+        if (!phoneRes.isValid) {
             validateField(phoneInput, false, 'err-phone', 'Numéro sénégalais invalide. Ex: 77 209 17 25');
             ok = false;
         } else {
+            const exists = registeredPatients.some(p => p.phone === phoneRes.formatted);
+            if (exists) {
+                alert("Un dossier patient avec ce numéro de téléphone existe déjà. Veuillez vous connecter.");
+                toggleAuthPage(true, 'login');
+                const loginPhoneInput = document.getElementById("login-phone");
+                if (loginPhoneInput) loginPhoneInput.value = phoneRes.formatted;
+                return;
+            }
             validateField(phoneInput, true, 'err-phone', '');
         }
 
@@ -355,30 +370,45 @@ function setupOnboarding() {
             validateField(domInput, true, 'err-domicile', '');
         }
 
+        if (password.length < 6) {
+            validateField(passwordInput, false, 'err-password', 'Le mot de passe doit contenir au moins 6 caractères.');
+            ok = false;
+        } else {
+            validateField(passwordInput, true, 'err-password', '');
+        }
+
         if (!ok) return; // Stopper si erreurs
 
         // ── Sauvegarde du profil visiteur
         const visitor = {
             prenom,
             nom,
-            phone: '+221 ' + phone,
+            phone: phoneRes.formatted,
             domicile,
             registeredAt: new Date().toISOString()
         };
         localStorage.setItem('daba_visitor', JSON.stringify(visitor));
 
-        // Ajouter à la liste patients
-        const patients = JSON.parse(localStorage.getItem('daba_patients')) || [];
-        const alreadyPatient = patients.find(p => p.phone === visitor.phone);
-        if (!alreadyPatient) {
-            patients.push({
-                name: `${prenom} ${nom}`,
-                phone: visitor.phone,
-                address: domicile,
-                registeredAt: visitor.registeredAt
-            });
-            localStorage.setItem('daba_patients', JSON.stringify(patients));
-        }
+        // Create new patient dossier
+        const newPatientObj = {
+            name: `${prenom} ${nom}`,
+            address: domicile,
+            phone: phoneRes.formatted,
+            password: password,
+            registeredAt: visitor.registeredAt,
+            region: "Dakar"
+        };
+
+        registeredPatients.push(newPatientObj);
+        localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
+
+        // Log them in immediately!
+        currentUser = newPatientObj;
+        isAdminMode = false;
+        localStorage.setItem('daba_user', JSON.stringify(currentUser));
+        localStorage.setItem('daba_admin_mode', JSON.stringify(isAdminMode));
+
+        triggerSmsAlert("INSCRIPTION PATIENT", `Nouveau patient inscrit (via onboarding).\nNom: ${prenom} ${nom}\nAdresse: ${domicile}\nTel: ${phoneRes.formatted}.`);
 
         // ── Bouton → état succès
         submitBtn.disabled = true;
@@ -387,24 +417,20 @@ function setupOnboarding() {
         submitBtn.style.borderColor = 'var(--color-success)';
         initLucideIcons();
 
-        // ── Transition vers la page d'accueil après 900ms
+        // ── Transition vers l'espace patient après 900ms
         setTimeout(() => {
-            goToLanding();
+            const onboardingPage = document.getElementById('onboarding-page');
+            onboardingPage.classList.remove('view-active');
+            onboardingPage.classList.add('view-hidden');
+            checkAuthState();
+            alert(`Félicitations ${prenom} ${nom}, votre dossier patient a été créé avec succès au CABINET PARAMÉDICAL DABAKH !`);
         }, 900);
     });
 
     // ── Bouton "Déjà inscrit"
     if (alreadyBtn) {
         alreadyBtn.addEventListener('click', () => {
-            const existing = JSON.parse(localStorage.getItem('daba_visitor'));
-            if (existing && existing.prenom) {
-                // Reconnecter directement sans formulaire
-                goToLanding();
-            } else {
-                alreadyBtn.textContent = 'Aucun dossier trouvé. Veuillez remplir le formulaire.';
-                alreadyBtn.style.color = 'var(--color-warning)';
-                alreadyBtn.disabled = true;
-            }
+            toggleAuthPage(true, 'login');
         });
     }
 }
@@ -450,34 +476,57 @@ function showPublicSection(sectionId) {
 
 // ── 3. NAVIGATION & MOBILE SIDEBAR DRAWER ──────────────────────────────────
 function setupNavigation() {
-    // Mobil Sidebar Trigger (3 dots vertical icon)
     const mobileMenuBtn = document.getElementById("mobile-menu-toggle");
     const mobileNav = document.getElementById("mobile-nav");
-    
+    const mobileNavClose = document.getElementById("mobile-nav-close");
+    const mobileNavOverlay = document.getElementById("mobile-nav-overlay");
+
+    function openMobileMenu() {
+        if (mobileNav) mobileNav.classList.add("open");
+        if (mobileNavOverlay) mobileNavOverlay.classList.add("active");
+        if (mobileMenuBtn) {
+            mobileMenuBtn.innerHTML = `<i data-lucide="x"></i>`;
+            initLucideIcons();
+        }
+    }
+
+    function closeMobileMenu() {
+        if (mobileNav) mobileNav.classList.remove("open");
+        if (mobileNavOverlay) mobileNavOverlay.classList.remove("active");
+        if (mobileMenuBtn) {
+            mobileMenuBtn.innerHTML = `<i data-lucide="menu"></i>`;
+            initLucideIcons();
+        }
+    }
+
     if (mobileMenuBtn) {
-        // Change default hamburger menu to "more-vertical" (3 dots)
-        mobileMenuBtn.innerHTML = `<i data-lucide="more-vertical"></i>`;
+        mobileMenuBtn.innerHTML = `<i data-lucide="menu"></i>`;
         initLucideIcons();
 
         mobileMenuBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            mobileNav.classList.toggle("open");
-            const isOpen = mobileNav.classList.contains("open");
-            mobileMenuBtn.innerHTML = isOpen ? `<i data-lucide="x"></i>` : `<i data-lucide="more-vertical"></i>`;
-            initLucideIcons();
+            const isOpen = mobileNav && mobileNav.classList.contains("open");
+            if (isOpen) {
+                closeMobileMenu();
+            } else {
+                openMobileMenu();
+            }
         });
     }
 
-    // Close mobile nav drawer when clicking outside
-    document.addEventListener("click", (e) => {
-        if (mobileNav && mobileNav.classList.contains("open")) {
-            if (!mobileNav.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
-                mobileNav.classList.remove("open");
-                mobileMenuBtn.innerHTML = `<i data-lucide="more-vertical"></i>`;
-                initLucideIcons();
-            }
-        }
-    });
+    if (mobileNavClose) {
+        mobileNavClose.addEventListener("click", (e) => {
+            e.stopPropagation();
+            closeMobileMenu();
+        });
+    }
+
+    if (mobileNavOverlay) {
+        mobileNavOverlay.addEventListener("click", (e) => {
+            e.stopPropagation();
+            closeMobileMenu();
+        });
+    }
 
     // Landing nav clicks - call showPublicSection for page separation
     document.querySelectorAll(".nav-menu a, .mobile-nav-link").forEach(link => {
@@ -485,13 +534,7 @@ function setupNavigation() {
             e.preventDefault();
             const targetId = link.getAttribute("href").substring(1);
             showPublicSection(targetId);
-            
-            // Close mobile menu sidebar drawer on option select
-            if (mobileNav) {
-                mobileNav.classList.remove("open");
-                mobileMenuBtn.innerHTML = `<i data-lucide="more-vertical"></i>`;
-                initLucideIcons();
-            }
+            closeMobileMenu();
         });
     });
 
@@ -501,12 +544,18 @@ function setupNavigation() {
     
     loginBtns.forEach(id => {
         const btn = document.getElementById(id);
-        if (btn) btn.addEventListener("click", () => toggleAuthPage(true, 'login'));
+        if (btn) btn.addEventListener("click", () => {
+            closeMobileMenu();
+            toggleAuthPage(true, 'login');
+        });
     });
     
     registerBtns.forEach(id => {
         const btn = document.getElementById(id);
-        if (btn) btn.addEventListener("click", () => toggleAuthPage(true, 'register'));
+        if (btn) btn.addEventListener("click", () => {
+            closeMobileMenu();
+            toggleAuthPage(true, 'register');
+        });
     });
 
     const backHomeBtn = document.getElementById("auth-btn-back-home");
@@ -525,12 +574,35 @@ function setupNavigation() {
     const sidebarOpenBtn = document.getElementById("sidebar-open-btn");
     const sidebarCloseBtn = document.getElementById("sidebar-close-btn");
     const sidebar = document.getElementById("app-sidebar");
+    const sidebarOverlay = document.getElementById("sidebar-overlay");
 
-    if (sidebarOpenBtn && sidebar) {
-        sidebarOpenBtn.addEventListener("click", () => sidebar.classList.add("open"));
+    function openSidebar() {
+        if (sidebar) sidebar.classList.add("open");
+        if (sidebarOverlay) sidebarOverlay.classList.add("active");
     }
-    if (sidebarCloseBtn && sidebar) {
-        sidebarCloseBtn.addEventListener("click", () => sidebar.classList.remove("open"));
+
+    function closeSidebar() {
+        if (sidebar) sidebar.classList.remove("open");
+        if (sidebarOverlay) sidebarOverlay.classList.remove("active");
+    }
+
+    if (sidebarOpenBtn) {
+        sidebarOpenBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openSidebar();
+        });
+    }
+    if (sidebarCloseBtn) {
+        sidebarCloseBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            closeSidebar();
+        });
+    }
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener("click", (e) => {
+            e.stopPropagation();
+            closeSidebar();
+        });
     }
 
     const btnScrollToBooking = document.getElementById("btn-scroll-to-booking");
@@ -577,7 +649,9 @@ function appSwitchTab(tabId) {
     if (menuItem) menuItem.classList.add("active");
 
     const sidebar = document.getElementById("app-sidebar");
+    const sidebarOverlay = document.getElementById("sidebar-overlay");
     if (sidebar) sidebar.classList.remove("open");
+    if (sidebarOverlay) sidebarOverlay.classList.remove("active");
 
     const titleMap = {
         'tab-overview': 'Dossier de Rééducation',
@@ -587,11 +661,18 @@ function appSwitchTab(tabId) {
         'tab-chatbot': 'Copilote Santé Dabakh',
         'tab-admin-overview': 'Patients Inscrits',
         'tab-admin-add-patient': 'Ajouter un Patient',
-        'tab-admin-stats': 'Statistiques'
+        'tab-admin-stats': 'Statistiques',
+        'tab-admin-profiles': 'Profils Utilisateurs'
     };
     const titleHeader = document.getElementById("app-page-title");
     if (titleHeader && titleMap[tabId]) {
         titleHeader.innerText = titleMap[tabId];
+    }
+
+    // Render profiles table when its tab is activated
+    if (tabId === 'tab-admin-profiles') {
+        renderProfilesTable();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 }
 
@@ -674,7 +755,10 @@ function setupAuthHandlers() {
 
             const exists = registeredPatients.some(p => p.phone === phoneRes.formatted);
             if (exists) {
-                alert("Un patient avec ce numéro de téléphone existe déjà.");
+                alert("Un dossier patient avec ce numéro de téléphone existe déjà. Veuillez vous connecter.");
+                toggleAuthForm('login');
+                const loginPhoneInput = document.getElementById("login-phone");
+                if (loginPhoneInput) loginPhoneInput.value = phoneRes.formatted;
                 return;
             }
 
@@ -682,6 +766,7 @@ function setupAuthHandlers() {
                 name,
                 address,
                 phone: phoneRes.formatted,
+                password, // MUST SAVE PASSWORD
                 registeredAt: new Date().toISOString(),
                 region: "Dakar"
             };
@@ -2120,4 +2205,151 @@ function renderAdminStats() {
     if (elTotalDocs) elTotalDocs.innerText = diagnostics.length;
 
     initLucideIcons();
+}
+
+// ==========================================================================
+//  ADMIN — PROFILS UTILISATEURS TABLE
+// ==========================================================================
+
+/** Renders the full profiles table. Call whenever tab becomes active. */
+function renderProfilesTable(filterData) {
+    const tbody = document.getElementById('profiles-table-body');
+    const emptyState = document.getElementById('profiles-empty-state');
+    const countBadge = document.getElementById('profiles-table-count-badge');
+    if (!tbody) return;
+
+    registeredPatients = JSON.parse(localStorage.getItem('daba_patients')) || registeredPatients;
+
+    const data = filterData !== undefined ? filterData : registeredPatients;
+    const now = new Date();
+
+    // Stat pills
+    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setEl('prof-count-total', registeredPatients.length);
+    setEl('prof-count-dakar', registeredPatients.filter(p => (p.region || '').toLowerCase() === 'dakar').length);
+    setEl('prof-count-month', registeredPatients.filter(p => {
+        if (!p.registeredAt) return false;
+        const d = new Date(p.registeredAt);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).length);
+    setEl('prof-count-active', registeredPatients.length);
+    if (countBadge) countBadge.textContent = data.length + ' profil' + (data.length !== 1 ? 's' : '');
+
+    if (data.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyState) emptyState.classList.remove('hidden');
+        return;
+    }
+    if (emptyState) emptyState.classList.add('hidden');
+
+    tbody.innerHTML = data.map((p, idx) => {
+        const parts = (p.name || 'P A').split(' ');
+        const initials = ((parts[0] || '')[0] || '') + ((parts[1] || '')[0] || '');
+        let dateStr = '—';
+        try { if (p.registeredAt) dateStr = new Date(p.registeredAt).toLocaleDateString('fr-SN', { day: '2-digit', month: 'short', year: 'numeric' }); } catch(e) {}
+        const pid = '#PT-' + (p.phone || '').replace(/\D/g, '').slice(-4).padStart(4, '0');
+        const rawPhone = (p.phone || '').replace(/\s/g, '');
+        const waLink = 'https://wa.me/' + rawPhone.replace('+', '');
+        const address = (p.address || '—').length > 28 ? (p.address || '—').slice(0, 26) + '…' : (p.address || '—');
+        const originalIdx = registeredPatients.findIndex(op => op.phone === p.phone);
+
+        return `<tr>
+            <td class="row-num">${idx + 1}</td>
+            <td>
+                <div class="profile-cell">
+                    <div class="profile-avatar">${initials.toUpperCase()}</div>
+                    <div>
+                        <div class="profile-name">${p.name || '—'}</div>
+                        <div class="profile-id">${pid}</div>
+                    </div>
+                </div>
+            </td>
+            <td><a href="${waLink}" target="_blank" rel="noopener" class="profile-phone-link">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.58 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                ${p.phone || '—'}</a></td>
+            <td>${address}</td>
+            <td><span class="region-badge">📍 ${p.region || 'Non renseignée'}</span></td>
+            <td><span class="profile-date">${dateStr}</span></td>
+            <td><span class="status-badge-active">Actif</span></td>
+            <td>
+                <div class="profile-actions">
+                    <button class="profile-action-btn" title="Copier le numéro" onclick="copyProfilePhone('${p.phone || ''}')">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
+                    <button class="profile-action-btn danger" title="Supprimer le profil" onclick="deleteProfile(${originalIdx})">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    </button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+/** Filter the table by search text + region. */
+function filterProfilesTable() {
+    registeredPatients = JSON.parse(localStorage.getItem('daba_patients')) || registeredPatients;
+    const query = (document.getElementById('profiles-search-input')?.value || '').toLowerCase().trim();
+    const region = (document.getElementById('profiles-region-filter')?.value || '').toLowerCase().trim();
+    const filtered = registeredPatients.filter(p => {
+        const matchSearch = !query || (p.name || '').toLowerCase().includes(query) || (p.phone || '').toLowerCase().includes(query) || (p.address || '').toLowerCase().includes(query);
+        const matchRegion = !region || (p.region || '').toLowerCase() === region;
+        return matchSearch && matchRegion;
+    });
+    renderProfilesTable(filtered);
+}
+
+/** Delete a profile by its index in registeredPatients. */
+function deleteProfile(idx) {
+    if (idx < 0 || idx >= registeredPatients.length) return;
+    const patient = registeredPatients[idx];
+    if (!confirm(`Supprimer définitivement le profil de "${patient.name}" ?\nCette action est irréversible.`)) return;
+    registeredPatients.splice(idx, 1);
+    localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
+    showNotificationBanner('Profil de ' + patient.name + ' supprimé.');
+    filterProfilesTable();
+}
+
+/** Copy phone number to clipboard. */
+function copyProfilePhone(phone) {
+    if (!phone) return;
+    const fallback = () => {
+        const ta = document.createElement('textarea');
+        ta.value = phone;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showNotificationBanner('📋 ' + phone + ' copié !');
+    };
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(phone).then(() => showNotificationBanner('📋 ' + phone + ' copié !')).catch(fallback);
+    } else { fallback(); }
+}
+
+/** Export visible profiles as CSV file. */
+function exportProfilesCSV() {
+    registeredPatients = JSON.parse(localStorage.getItem('daba_patients')) || registeredPatients;
+    const query = (document.getElementById('profiles-search-input')?.value || '').toLowerCase().trim();
+    const region = (document.getElementById('profiles-region-filter')?.value || '').toLowerCase().trim();
+    const data = registeredPatients.filter(p => {
+        const matchSearch = !query || (p.name || '').toLowerCase().includes(query) || (p.phone || '').toLowerCase().includes(query);
+        const matchRegion = !region || (p.region || '').toLowerCase() === region;
+        return matchSearch && matchRegion;
+    });
+    const header = ['Nom', 'Téléphone', 'Adresse', 'Région', "Date d'Inscription"];
+    const rows = data.map(p => {
+        const date = p.registeredAt ? new Date(p.registeredAt).toLocaleDateString('fr-SN') : '';
+        return [p.name, p.phone, p.address, p.region, date].map(v => '"' + (v || '').replace(/"/g, '""') + '"').join(',');
+    });
+    const csv = '\ufeff' + [header.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'profils-patients-dabakh-' + new Date().toISOString().slice(0,10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showNotificationBanner('📥 Export CSV de ' + data.length + ' profil(s) lancé !');
 }

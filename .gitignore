@@ -42,3 +42,7 @@ desktop.ini
 node_modules/
 dist/
 .cache/
+
+# ─── MCP CONFIG (contient des tokens sensibles) ───────────────────────────────
+.mcp.json
+API/.mcp.json
