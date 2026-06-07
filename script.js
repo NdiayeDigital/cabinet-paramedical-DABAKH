@@ -73,16 +73,19 @@ async function syncFromSupabase() {
             localStorage.setItem('daba_sms', JSON.stringify(smsNotifications));
         }
 
-        if (!window.notifChannelSetup) {
-            supabaseClient.channel('notifications-insert-channel')
+        if (!window.realtimeChannelsSetup) {
+            // 1. Notifications Channel
+            supabaseClient.channel('notifications-realtime')
               .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, payload => {
                 const n = payload.new;
                 const newSms = {
                     id: n.id, title: n.title, message: n.message,
                     time: new Date(n.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
                 };
-                smsNotifications.push(newSms);
-                localStorage.setItem('daba_sms', JSON.stringify(smsNotifications));
+                if (!smsNotifications.some(s => s.id === newSms.id)) {
+                    smsNotifications.push(newSms);
+                    localStorage.setItem('daba_sms', JSON.stringify(smsNotifications));
+                }
                 
                 if (isAdminMode) {
                     if (typeof refreshAdminSMSLogs === 'function') refreshAdminSMSLogs();
@@ -95,7 +98,102 @@ async function syncFromSupabase() {
                     }
                 }
               }).subscribe();
-            window.notifChannelSetup = true;
+
+            // 2. Diagnostics/Prescriptions Channel
+            supabaseClient.channel('diagnostics-realtime')
+              .on('postgres_changes', { event: '*', schema: 'public', table: 'diagnostics' }, payload => {
+                const newOrUpdated = payload.new;
+                const oldDiag = payload.old;
+                
+                if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                    const mappedDiag = {
+                        id: newOrUpdated.id,
+                        patientPhone: newOrUpdated.patient_phone,
+                        patientName: newOrUpdated.patient_name,
+                        serviceId: newOrUpdated.service_id,
+                        serviceName: newOrUpdated.service_name,
+                        symptoms: newOrUpdated.symptoms,
+                        fileName: newOrUpdated.file_name,
+                        fileUrl: newOrUpdated.file_url,
+                        fileType: newOrUpdated.file_type,
+                        aiAnalysis: newOrUpdated.ai_analysis,
+                        status: newOrUpdated.status,
+                        adminNotes: newOrUpdated.admin_notes,
+                        createdAt: newOrUpdated.submitted_at || newOrUpdated.created_at || new Date().toISOString()
+                    };
+
+                    const idx = diagnostics.findIndex(d => d.id === mappedDiag.id);
+                    if (idx !== -1) {
+                        diagnostics[idx] = mappedDiag;
+                    } else {
+                        diagnostics.push(mappedDiag);
+                    }
+
+                    // Notification immédiate pour le patient s'il reçoit une ordonnance
+                    if (!isAdminMode && currentUser && 
+                        (mappedDiag.patientPhone.replace(/\s+/g, '') === currentUser.phone.replace(/\s+/g, '') || mappedDiag.patientName === currentUser.name) && 
+                        mappedDiag.serviceId === 'ordonnance') {
+                        playNotificationSound();
+                        alert(`DABAKH CLINIC : Le Dr. MACODOU NDIAYE vient de déposer une ordonnance médicale dans votre espace patient !`);
+                    }
+
+                } else if (payload.eventType === 'DELETE') {
+                    diagnostics = diagnostics.filter(d => d.id !== oldDiag.id);
+                }
+
+                localStorage.setItem('daba_diagnostics', JSON.stringify(diagnostics));
+                if (typeof renderDiagnosticsList === 'function') renderDiagnosticsList();
+                if (typeof refreshAdminPortal === 'function' && isAdminMode) refreshAdminPortal();
+              }).subscribe();
+
+            // 3. Appointments Channel
+            supabaseClient.channel('appointments-realtime')
+              .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, payload => {
+                const newOrUpdated = payload.new;
+                const oldApt = payload.old;
+
+                if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                    const mappedApt = {
+                        id: newOrUpdated.id,
+                        patientPhone: newOrUpdated.patient_phone,
+                        patientName: newOrUpdated.patient_name,
+                        serviceId: newOrUpdated.service_id,
+                        serviceName: newOrUpdated.service_name,
+                        price: newOrUpdated.price,
+                        doctor: newOrUpdated.doctor,
+                        date: newOrUpdated.appointment_date,
+                        time: newOrUpdated.appointment_time,
+                        status: newOrUpdated.status,
+                        notes: newOrUpdated.notes,
+                        createdAt: newOrUpdated.created_at
+                    };
+
+                    const idx = appointments.findIndex(a => a.id === mappedApt.id);
+                    if (idx !== -1) {
+                        const oldStatus = appointments[idx].status;
+                        appointments[idx] = mappedApt;
+                        
+                        // Notification immédiate pour le patient lors d'un changement de statut
+                        if (!isAdminMode && currentUser && mappedApt.patientPhone.replace(/\s+/g, '') === currentUser.phone.replace(/\s+/g, '')) {
+                            if (oldStatus !== mappedApt.status) {
+                                playNotificationSound();
+                                alert(`DABAKH CLINIC : Le statut de votre séance (${mappedApt.serviceName}) est passé à : ${mappedApt.status}`);
+                            }
+                        }
+                    } else {
+                        appointments.push(mappedApt);
+                    }
+                } else if (payload.eventType === 'DELETE') {
+                    appointments = appointments.filter(a => a.id !== oldApt.id);
+                }
+
+                localStorage.setItem('daba_appointments', JSON.stringify(appointments));
+                if (typeof renderAppointmentsHistory === 'function') renderAppointmentsHistory();
+                if (typeof renderOverviewTicket === 'function') renderOverviewTicket();
+                if (typeof refreshAdminPortal === 'function' && isAdminMode) refreshAdminPortal();
+              }).subscribe();
+
+            window.realtimeChannelsSetup = true;
         }
 
         // Force refresh UI data after sync
