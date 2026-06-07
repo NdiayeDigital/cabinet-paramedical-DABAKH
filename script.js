@@ -13,7 +13,11 @@ const SUPABASE_URL = "https://wotfalrbvttquqshitfs.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_1gydclg-c2L1PKP4aTk-0Q_LD7FxNwh";
 let supabase = null;
 if (window.supabase) {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    try {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } catch (e) {
+        console.error("Failed to initialize Supabase client:", e);
+    }
 }
 
 async function syncFromSupabase() {
@@ -297,7 +301,11 @@ let uploadedFileBase64 = "";
 // ── INITIALIZE APPLICATION ───────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
     initLucideIcons();
-    await syncFromSupabase();
+    try {
+        await syncFromSupabase();
+    } catch (err) {
+        console.error("Supabase sync failed, continuing offline/local:", err);
+    }
     checkOnboarding();
     setupNavigation();
     setupAuthHandlers();
