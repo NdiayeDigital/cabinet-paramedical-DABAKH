@@ -48,8 +48,44 @@ async function syncFromSupabase() {
             }));
             localStorage.setItem('daba_diagnostics', JSON.stringify(diagnostics));
         }
+
+        const { data: dbNotifs } = await supabase.from('notifications').select('*').order('created_at', { ascending: true });
+        if (dbNotifs && dbNotifs.length > 0) {
+            smsNotifications = dbNotifs.map(n => ({
+                id: n.id, title: n.title, message: n.message,
+                time: new Date(n.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+            }));
+            localStorage.setItem('daba_sms', JSON.stringify(smsNotifications));
+        }
+
+        if (!window.notifChannelSetup) {
+            supabase.channel('notifications-insert-channel')
+              .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, payload => {
+                const n = payload.new;
+                const newSms = {
+                    id: n.id, title: n.title, message: n.message,
+                    time: new Date(n.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                };
+                smsNotifications.push(newSms);
+                localStorage.setItem('daba_sms', JSON.stringify(smsNotifications));
+                
+                if (isAdminMode) {
+                    if (typeof refreshAdminSMSLogs === 'function') refreshAdminSMSLogs();
+                    if (typeof playNotificationSound === 'function') playNotificationSound();
+                    const toggleBtn = document.getElementById("phone-toggle-btn");
+                    if (toggleBtn) {
+                        toggleBtn.classList.remove("shake-animation");
+                        void toggleBtn.offsetWidth;
+                        toggleBtn.classList.add("shake-animation");
+                    }
+                }
+              }).subscribe();
+            window.notifChannelSetup = true;
+        }
+
         // Force refresh UI data after sync
         if (typeof renderProfilesTable === 'function' && isAdminMode) renderProfilesTable();
+        if (typeof refreshAdminSMSLogs === 'function' && isAdminMode) refreshAdminSMSLogs();
     } catch (e) { console.error("Erreur de synchronisation Supabase :", e); }
 }
 
@@ -80,6 +116,15 @@ async function saveDiagnosticRemote(d) {
         symptoms: d.symptoms || '', file_name: d.fileName || '', file_url: d.fileUrl || d.fileData || '',
         file_type: d.fileType || '', ai_analysis: d.aiAnalysis || '', status: d.status || 'En attente',
         admin_notes: d.adminNotes || '', submitted_at: d.createdAt || new Date().toISOString()
+    }]);
+}
+
+async function saveNotificationRemote(notif) {
+    if (!supabase) return;
+    await supabase.from('notifications').insert([{
+        title: notif.title,
+        message: notif.message,
+        created_at: new Date().toISOString()
     }]);
 }
 
@@ -1812,30 +1857,35 @@ function triggerSmsAlert(title, message) {
         time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
     };
 
-    smsNotifications.push(newSms);
-    localStorage.setItem('daba_sms', JSON.stringify(smsNotifications));
+    if (supabase) {
+        saveNotificationRemote(newSms);
+    } else {
+        smsNotifications.push(newSms);
+        localStorage.setItem('daba_sms', JSON.stringify(smsNotifications));
 
-    // ONLY the administrator sees the visual/audible simulation indicators after actions!
-    if (isAdminMode) {
-        refreshAdminSMSLogs();
-        playNotificationSound();
+        if (isAdminMode) {
+            refreshAdminSMSLogs();
+            playNotificationSound();
 
-        const toggleBtn = document.getElementById("phone-toggle-btn");
-        if (toggleBtn) {
-            toggleBtn.classList.remove("shake-animation");
-            void toggleBtn.offsetWidth;
-            toggleBtn.classList.add("shake-animation");
+            const toggleBtn = document.getElementById("phone-toggle-btn");
+            if (toggleBtn) {
+                toggleBtn.classList.remove("shake-animation");
+                void toggleBtn.offsetWidth;
+                toggleBtn.classList.add("shake-animation");
+            }
+
+            const badge = document.getElementById("phone-unread-count");
+            if (badge) {
+                const currentCount = parseInt(badge.innerText) || 0;
+                const newCount = currentCount + 1;
+                badge.innerText = newCount;
+                badge.classList.remove("hidden");
+            }
+
+            if (typeof triggerTopScreenBanner === 'function') {
+                triggerTopScreenBanner(title, message);
+            }
         }
-
-        const badge = document.getElementById("phone-unread-count");
-        if (badge) {
-            const currentCount = parseInt(badge.innerText) || 0;
-            const newCount = currentCount + 1;
-            badge.innerText = newCount;
-            badge.classList.remove("hidden");
-        }
-
-        triggerTopScreenBanner(title, message);
     }
 }
 
