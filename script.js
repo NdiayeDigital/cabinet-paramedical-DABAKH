@@ -126,7 +126,7 @@ async function saveAppointmentRemote(a) {
     await supabaseClient.from('appointments').upsert([{
         id: a.id, patient_phone: a.patientPhone || a.phone || '', patient_name: a.patientName || a.name || 'Inconnu',
         service_id: a.serviceId || 'consultation', service_name: a.serviceName || 'Consultation',
-        price: a.price || 5000, doctor: a.doctor || 'Dr. Fall', appointment_date: a.date,
+        price: a.price || 5000, doctor: a.doctor || 'Dr. MACODOU NDIAYE', appointment_date: a.date,
         appointment_time: a.time, status: a.status || 'Confirmé', notes: a.notes || '',
         created_at: a.createdAt || new Date().toISOString()
     }], { onConflict: 'id' });
@@ -1250,14 +1250,14 @@ function setupBookingCalendar() {
 
 function getDoctorForService(serviceId) {
     const doctors = {
-        'kine-reeduc': 'Dr. Al Amin Diop (Kiné Principal)',
-        'kine-sport': 'Dr. Cheikh Tidiane Sy (Kiné du Sport)',
-        'kine-pediatrique': 'Dr. Aminata Ndiaye (Pédiatre)',
-        'kine-traumato': 'Dr. Oumar Fall (Orthopédiste)',
-        'therapie-manuelle': 'Dr. Khady Touré (Spécialiste Dos)',
-        'kine-neurologique': 'Dr. Fatoumata Sow (Neurologue)'
+        'kine-reeduc': 'Dr. MACODOU NDIAYE (Kiné Principal)',
+        'kine-sport': 'Dr. MACODOU NDIAYE (Kiné du Sport)',
+        'kine-pediatrique': 'Dr. MACODOU NDIAYE (Pédiatre)',
+        'kine-traumato': 'Dr. MACODOU NDIAYE (Orthopédiste)',
+        'therapie-manuelle': 'Dr. MACODOU NDIAYE (Spécialiste Dos)',
+        'kine-neurologique': 'Dr. MACODOU NDIAYE (Neurologue)'
     };
-    return doctors[serviceId] || 'Spécialiste Dabakh';
+    return doctors[serviceId] || 'Dr. MACODOU NDIAYE';
 }
 
 function renderBookingPreview() {
