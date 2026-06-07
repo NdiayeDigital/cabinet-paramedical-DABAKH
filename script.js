@@ -59,7 +59,7 @@ async function syncFromSupabase() {
                 serviceId: d.service_id, serviceName: d.service_name, symptoms: d.symptoms,
                 fileName: d.file_name, fileUrl: d.file_url, fileType: d.file_type,
                 aiAnalysis: d.ai_analysis, status: d.status, adminNotes: d.admin_notes,
-                submittedAt: d.submitted_at
+                createdAt: d.submitted_at || d.created_at || new Date().toISOString()
             }));
             localStorage.setItem('daba_diagnostics', JSON.stringify(diagnostics));
         }
@@ -202,6 +202,7 @@ localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
 
 let pendingBooking = null;
 let uploadedFileUrl = null; // URL Supabase Storage du fichier médical
+let currentSelectedDiagFile = null;
 
 // ── 1. SERVICES DATA REFERENCE (WITH COMING SOON PHASING) ─────────────────
 const SERVICES_DATA = [
@@ -1400,7 +1401,7 @@ function setupDiagnosticDropzone() {
 
     const diagForm = document.getElementById("diagnostic-form");
     if (diagForm) {
-        diagForm.addEventListener("submit", (e) => {
+        diagForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const serviceId = document.getElementById("diag-service").value;
             const symptoms = document.getElementById("diag-symptoms").value.trim();
@@ -1420,7 +1421,17 @@ function setupDiagnosticDropzone() {
 
             playNotificationSound();
 
-            setTimeout(() => {
+            // S'assurer que le fichier est bien téléversé sur Supabase avant de soumettre
+            if (!uploadedFileUrl && currentSelectedDiagFile) {
+                const phone = currentUser ? currentUser.phone : 'anonyme';
+                try {
+                    uploadedFileUrl = await uploadFileToSupabase(currentSelectedDiagFile, phone);
+                } catch (err) {
+                    console.error("Erreur secours upload Supabase:", err);
+                }
+            }
+
+            setTimeout(async () => {
                 loader.classList.add("hidden");
                 btnSubmit.disabled = false;
                 btnSubmit.innerText = "Soumettre pour Étude au Cabinet";
@@ -1430,9 +1441,9 @@ function setupDiagnosticDropzone() {
                     serviceId,
                     serviceName: service.name,
                     symptoms,
-                    fileName: uploadedFileUrl ? uploadedFileUrl.split('/').pop() : "Document_Medical_Dabakh.jpg",
-                    fileUrl:  uploadedFileUrl  || null,   // URL Supabase Storage (priorité)
-                    fileData: uploadedFileUrl  ? null : uploadedFileBase64, // base64 seulement si pas d'URL
+                    fileName: currentSelectedDiagFile ? currentSelectedDiagFile.name : (uploadedFileUrl ? uploadedFileUrl.split('/').pop() : "Document_Medical_Dabakh.jpg"),
+                    fileUrl:  uploadedFileUrl  || null,   // URL Supabase Storage
+                    fileData: uploadedFileUrl  ? null : uploadedFileBase64, // backup local
                     status: "En cours d'étude",
                     createdAt: new Date().toISOString(),
                     patientName:  currentUser ? currentUser.name  : "Inconnu",
@@ -1441,9 +1452,9 @@ function setupDiagnosticDropzone() {
 
                 diagnostics.push(newDiag);
                 localStorage.setItem('daba_diagnostics', JSON.stringify(diagnostics));
-                saveDiagnosticRemote(newDiag);
+                await saveDiagnosticRemote(newDiag);
 
-                triggerSmsAlert("DOCUMENT REÇU", `Nouveau dossier médical soumis.\nPatient: ${currentUser.name}\nService: ${service.name}\nDescription: ${symptoms.slice(0, 45)}...\nFichier: Document_Medical_Dabakh.jpg.`);
+                triggerSmsAlert("DOCUMENT REÇU", `Nouveau dossier médical soumis.\nPatient: ${newDiag.patientName}\nService: ${newDiag.serviceName}\nDescription: ${symptoms.slice(0, 45)}...\nFichier: ${newDiag.fileName}.`);
 
                 alert("Votre rapport médical a été transmis avec succès aux praticiens du CABINET PARAMÉDICAL DABAKH !");
                 
@@ -1456,6 +1467,7 @@ function setupDiagnosticDropzone() {
 }
 
 function handleUploadedFile(file) {
+    currentSelectedDiagFile = file;
     // 1. Prévisualisation locale immédiate
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -1481,6 +1493,7 @@ function handleUploadedFile(file) {
 function removeUploadedFile() {
     uploadedFileBase64 = "";
     uploadedFileUrl = null;
+    currentSelectedDiagFile = null;
     document.getElementById("diag-file-input").value = "";
     document.getElementById("diag-dropzone").classList.remove("hidden");
     document.getElementById("upload-preview-container").classList.add("hidden");
