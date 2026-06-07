@@ -8,6 +8,81 @@ function verifyAdmin(user, pass) {
     return btoa(user + ":" + pass) === ADMIN_HASH;
 }
 
+// ── SUPABASE CLOUD BACKEND ────────────────────────────────────────────────
+const SUPABASE_URL = "https://wotfalrbvttquqshitfs.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_1gydclg-c2L1PKP4aTk-0Q_LD7FxNwh";
+let supabase = null;
+if (window.supabase) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+async function syncFromSupabase() {
+    if (!supabase) return;
+    try {
+        const { data: dbPatients } = await supabase.from('profiles').select('*');
+        if (dbPatients && dbPatients.length > 0) {
+            registeredPatients = dbPatients.map(p => ({
+                name: p.full_name, phone: p.phone, address: p.address,
+                password: p.password_hash, registeredAt: p.created_at, region: p.region || 'Dakar'
+            }));
+            localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
+        }
+        const { data: dbApts } = await supabase.from('appointments').select('*');
+        if (dbApts && dbApts.length > 0) {
+            appointments = dbApts.map(a => ({
+                id: a.id, patientPhone: a.patient_phone, patientName: a.patient_name,
+                serviceId: a.service_id, serviceName: a.service_name, price: a.price,
+                doctor: a.doctor, date: a.appointment_date, time: a.appointment_time,
+                status: a.status, notes: a.notes, createdAt: a.created_at
+            }));
+            localStorage.setItem('daba_appointments', JSON.stringify(appointments));
+        }
+        const { data: dbDiags } = await supabase.from('diagnostics').select('*');
+        if (dbDiags && dbDiags.length > 0) {
+            diagnostics = dbDiags.map(d => ({
+                id: d.id, patientPhone: d.patient_phone, patientName: d.patient_name,
+                serviceId: d.service_id, serviceName: d.service_name, symptoms: d.symptoms,
+                fileName: d.file_name, fileUrl: d.file_url, fileType: d.file_type,
+                aiAnalysis: d.ai_analysis, status: d.status, adminNotes: d.admin_notes,
+                submittedAt: d.submitted_at
+            }));
+            localStorage.setItem('daba_diagnostics', JSON.stringify(diagnostics));
+        }
+        // Force refresh UI data after sync
+        if (typeof renderProfilesTable === 'function' && isAdminMode) renderProfilesTable();
+    } catch (e) { console.error("Erreur de synchronisation Supabase :", e); }
+}
+
+async function savePatientRemote(p) {
+    if (!supabase) return;
+    await supabase.from('profiles').upsert([{
+        phone: p.phone, full_name: p.name, address: p.address,
+        password_hash: p.password, region: p.region || 'Dakar', created_at: p.registeredAt || new Date().toISOString()
+    }], { onConflict: 'phone' });
+}
+
+async function saveAppointmentRemote(a) {
+    if (!supabase) return;
+    await supabase.from('appointments').upsert([{
+        id: a.id, patient_phone: a.patientPhone || a.phone || '', patient_name: a.patientName || a.name || 'Inconnu',
+        service_id: a.serviceId || 'consultation', service_name: a.serviceName || 'Consultation',
+        price: a.price || 5000, doctor: a.doctor || 'Dr. Fall', appointment_date: a.date,
+        appointment_time: a.time, status: a.status || 'Confirmé', notes: a.notes || '',
+        created_at: a.createdAt || new Date().toISOString()
+    }], { onConflict: 'id' });
+}
+
+async function saveDiagnosticRemote(d) {
+    if (!supabase) return;
+    await supabase.from('diagnostics').upsert([{
+        id: d.id, patient_phone: d.patientPhone || d.phone || '', patient_name: d.patientName || d.name || 'Inconnu',
+        service_id: d.serviceId || 'consultation', service_name: d.serviceName || 'Consultation',
+        symptoms: d.symptoms || '', file_name: d.fileName || '', file_url: d.fileUrl || d.fileData || '',
+        file_type: d.fileType || '', ai_analysis: d.aiAnalysis || '', status: d.status || 'En attente',
+        admin_notes: d.adminNotes || '', submitted_at: d.createdAt || new Date().toISOString()
+    }]);
+}
+
 // ── LOCAL STORAGE DB INITS ────────────────────────────────────────────────
 let currentUser = JSON.parse(localStorage.getItem('daba_user')) || null;
 let isAdminMode = JSON.parse(localStorage.getItem('daba_admin_mode')) || false;
@@ -175,8 +250,9 @@ let selectedBookingTime = "";
 let uploadedFileBase64 = "";
 
 // ── INITIALIZE APPLICATION ───────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     initLucideIcons();
+    await syncFromSupabase();
     checkOnboarding(); // 🔐 Gate: show onboarding if not yet registered
     setupNavigation();
     setupAuthHandlers();
@@ -401,6 +477,7 @@ function setupOnboarding() {
 
         registeredPatients.push(newPatientObj);
         localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
+        savePatientRemote(newPatientObj);
 
         // Log them in immediately!
         currentUser = newPatientObj;
@@ -773,6 +850,7 @@ function setupAuthHandlers() {
 
             registeredPatients.push(newPatientObj);
             localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
+            savePatientRemote(newPatientObj);
 
             currentUser = newPatientObj;
             isAdminMode = false;
@@ -790,28 +868,37 @@ function setupAuthHandlers() {
     // Connexion Form (With Admin Recognition)
     const loginForm = document.getElementById("login-form");
     if (loginForm) {
-        loginForm.addEventListener("submit", (e) => {
+        loginForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const identifier = document.getElementById("login-phone").value.trim();
             const pass = document.getElementById("login-password").value.trim();
 
-            // 1. Admin login credentials
+            // 1. Admin login credentials via Supabase Auth
             if (identifier === "Admin1978" || identifier.toLowerCase() === "admin") {
-                if (verifyAdmin("Admin1978", pass)) {
-                    isAdminMode = true;
-                    currentUser = { name: "Administrateur Cabinet", phone: "+221 77 209 17 25", address: "Dakar, Cabinet" };
-                    localStorage.setItem('daba_user', JSON.stringify(currentUser));
-                    localStorage.setItem('daba_admin_mode', JSON.stringify(isAdminMode));
-                    
-                    toggleAuthPage(false);
-                    checkAuthState();
-                    appSwitchTab('tab-admin-overview');
-                    alert("Accès Administrateur accordé. Bienvenue sur le portail DABAKH.");
+                if (!supabase) {
+                    alert("Erreur de connexion serveur Supabase.");
                     return;
-                } else {
+                }
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: 'admin@dabakh.com',
+                    password: pass
+                });
+
+                if (error) {
                     alert("Identifiants ou mot de passe Administrateur erronés.");
                     return;
                 }
+
+                isAdminMode = true;
+                currentUser = { name: "Administrateur Cabinet", phone: "+221 77 209 17 25", address: "Dakar, Cabinet" };
+                localStorage.setItem('daba_user', JSON.stringify(currentUser));
+                localStorage.setItem('daba_admin_mode', JSON.stringify(isAdminMode));
+                
+                toggleAuthPage(false);
+                checkAuthState();
+                appSwitchTab('tab-admin-overview');
+                alert("Accès Administrateur accordé via Supabase. Bienvenue sur le portail DABAKH.");
+                return;
             }
 
             // 2. Patient Login Check — par téléphone OU par nom
@@ -1195,6 +1282,7 @@ function setupBookingCalendar() {
             pendingBooking.status = "Confirmé";
             appointments.push(pendingBooking);
             localStorage.setItem('daba_appointments', JSON.stringify(appointments));
+            saveAppointmentRemote(pendingBooking);
 
             triggerSmsAlert("NOUVEAU RENDEZ-VOUS", `Rendez-vous programmé.\nPatient: ${currentUser.name}\nService: ${pendingBooking.serviceName}\nDate: ${new Date(pendingBooking.date).toLocaleDateString('fr-FR')}\nHeure: ${pendingBooking.time}\nTel: ${currentUser.phone}.`);
 
@@ -1412,6 +1500,7 @@ function setupDiagnosticDropzone() {
 
                 diagnostics.push(newDiag);
                 localStorage.setItem('daba_diagnostics', JSON.stringify(diagnostics));
+                saveDiagnosticRemote(newDiag);
 
                 triggerSmsAlert("DOCUMENT REÇU", `Nouveau dossier médical soumis.\nPatient: ${currentUser.name}\nService: ${service.name}\nDescription: ${symptoms.slice(0, 45)}...\nFichier: Document_Medical_Dabakh.jpg.`);
 
@@ -1590,6 +1679,7 @@ function cancelAppointmentFromHistory(aptId) {
     if (confirm(`Voulez-vous annuler votre séance de ${apt.serviceName} du ${new Date(apt.date).toLocaleDateString('fr-FR')} à ${apt.time} ?`)) {
         apt.status = "Annulé";
         localStorage.setItem('daba_appointments', JSON.stringify(appointments));
+        saveAppointmentRemote(apt);
         
         triggerSmsAlert("RENDEZ-VOUS ANNULÉ", `Séance annulée par le patient.\nNom: ${currentUser.name}\nService: ${apt.serviceName}\nDate: ${new Date(apt.date).toLocaleDateString('fr-FR')} à ${apt.time}.`);
         
@@ -1950,6 +2040,7 @@ function setupAdminPortalHandlers() {
 
             registeredPatients.push(newPat);
             localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
+            savePatientRemote(newPat);
 
             // SMS alert for admin panel
             triggerSmsAlert("NOUVEAU PATIENT AJOUTÉ",
@@ -2091,6 +2182,7 @@ function adminCancelAppointment(aptId) {
         if (aptIndex !== -1) {
             appointments[aptIndex].status = "Annulé";
             localStorage.setItem('daba_appointments', JSON.stringify(appointments));
+            saveAppointmentRemote(appointments[aptIndex]);
             alert("Rendez-vous annulé.");
             refreshAdminPortal();
             if (currentUser && currentUser.phone === appointments[aptIndex].patientPhone) {
@@ -2112,6 +2204,7 @@ function adminEditAppointmentPrompt(aptId) {
             apt.date = newDate;
             apt.time = newTime;
             localStorage.setItem('daba_appointments', JSON.stringify(appointments));
+            saveAppointmentRemote(apt);
             alert("Rendez-vous modifié avec succès.");
             refreshAdminPortal();
             if (currentUser && currentUser.phone === apt.patientPhone) {
@@ -2305,6 +2398,7 @@ function deleteProfile(idx) {
     if (!confirm(`Supprimer définitivement le profil de "${patient.name}" ?\nCette action est irréversible.`)) return;
     registeredPatients.splice(idx, 1);
     localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
+    if (supabase) supabase.from('profiles').delete().eq('phone', patient.phone).then();
     showNotificationBanner('Profil de ' + patient.name + ' supprimé.');
     filterProfilesTable();
 }
