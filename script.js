@@ -1491,7 +1491,14 @@ function renderDiagnosticsList() {
     const container = document.getElementById("patient-diagnostics-list");
     if (!container) return;
 
-    if (diagnostics.length === 0) {
+    const myDiags = diagnostics.filter(diag => {
+        if (!currentUser) return false;
+        const diagPhone = (diag.patientPhone || "").replace(/\s+/g, "");
+        const userPhone = (currentUser.phone || "").replace(/\s+/g, "");
+        return diagPhone === userPhone || diag.patientName === currentUser.name;
+    });
+
+    if (myDiags.length === 0) {
         container.innerHTML = `
             <div class="text-center p-2 text-muted">
                 <i data-lucide="file-text" style="width:36px; height:36px; margin:0 auto 8px;"></i>
@@ -1502,16 +1509,20 @@ function renderDiagnosticsList() {
         return;
     }
 
-    container.innerHTML = diagnostics.map(diag => {
+    container.innerHTML = myDiags.map(diag => {
         const dateStr = new Date(diag.createdAt).toLocaleDateString('fr-FR');
+        let badgeClass = "badge-warning";
+        if (diag.status === "Délivrée") badgeClass = "badge-success";
+        if (diag.status === "En cours d'étude") badgeClass = "badge-accent";
+
         return `
             <div class="diagnostic-item-card bg-dark">
                 <div class="diag-item-header">
                     <h4>${diag.serviceName}</h4>
-                    <span class="badge badge-warning">${diag.status}</span>
+                    <span class="badge ${badgeClass}">${diag.status}</span>
                 </div>
                 <div class="diag-item-body">
-                    <p class="mb-05"><strong>Symptômes :</strong> ${diag.symptoms}</p>
+                    <p class="mb-05"><strong>Note / Description :</strong> ${diag.symptoms}</p>
                     <span class="text-xs text-muted">Transmis le ${dateStr}</span>
                 </div>
                 <div class="diag-item-attachment" onclick="previewAttachedFile('${diag.id}')">
@@ -2078,6 +2089,11 @@ function refreshAdminPortal() {
                     <td>${p.address}</td>
                     <td>${dateStr}</td>
                     <td><span class="badge badge-secondary">${p.region || 'Dakar'}</span></td>
+                    <td>
+                        <button class="btn btn-secondary btn-sm" onclick="openPrescriptionModal('${p.phone.replace(/\s+/g, '')}', '${p.name.replace(/'/g, "\\'")}')" title="Uploader une ordonnance">
+                            <i data-lucide="file-plus"></i> + Ordonnance
+                        </button>
+                    </td>
                 </tr>
             `;
         }).join('');
@@ -2091,20 +2107,33 @@ function refreshAdminPortal() {
         } else {
             tbodyApt.innerHTML = activeApts.map(a => {
                 const dateStr = new Date(a.date).toLocaleDateString('fr-FR');
+                let badgeClass = "badge-warning";
+                if (a.status === "Confirmé") badgeClass = "badge-success";
+                if (a.status === "Refusé" || a.status === "Annulé") badgeClass = "badge-danger";
+
                 return `
                     <tr>
                         <td class="font-bold">${a.patientName || 'Inconnu'} <br> <span class="text-xs text-muted">${a.patientPhone || ''}</span></td>
                         <td>${a.serviceName}</td>
                         <td>${dateStr}</td>
                         <td class="text-accent font-bold">${a.time}</td>
-                        <td><span class="badge badge-success">${a.status}</span></td>
+                        <td><span class="badge ${badgeClass}">${a.status}</span></td>
                         <td>
-                            <button class="btn btn-secondary btn-sm" onclick="adminEditAppointmentPrompt('${a.id}')" title="Modifier">
-                                <i data-lucide="edit"></i>
-                            </button>
-                            <button class="btn btn-danger btn-sm" onclick="adminCancelAppointment('${a.id}')" title="Annuler">
-                                <i data-lucide="trash-2"></i>
-                            </button>
+                            <div class="flex gap-05">
+                                ${a.status === "En attente de validation" ? `
+                                <button class="btn btn-success btn-sm" onclick="adminConfirmAppointment('${a.id}')" title="Confirmer">
+                                    <i data-lucide="check"></i>
+                                </button>
+                                ` : ''}
+                                ${a.status !== "Refusé" && a.status !== "Annulé" ? `
+                                <button class="btn btn-danger btn-sm" onclick="adminRefuseAppointment('${a.id}')" title="Refuser">
+                                    <i data-lucide="x"></i>
+                                </button>
+                                ` : ''}
+                                <button class="btn btn-secondary btn-sm" onclick="adminEditAppointmentPrompt('${a.id}')" title="Reprogrammer / Modifier">
+                                    <i data-lucide="edit"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -2173,6 +2202,130 @@ function adminEditAppointmentPrompt(aptId) {
             }
         }
     }
+}
+
+// ── ADMIN INTERACTIVE APPOINTMENT MANAGEMENT ─────────────────────────────
+async function adminConfirmAppointment(aptId) {
+    const aptIndex = appointments.findIndex(a => a.id === aptId);
+    if (aptIndex !== -1) {
+        appointments[aptIndex].status = "Confirmé";
+        localStorage.setItem('daba_appointments', JSON.stringify(appointments));
+        await saveAppointmentRemote(appointments[aptIndex]);
+        
+        triggerSmsAlert("CONFIRMATION RDV", `Votre rendez-vous pour ${appointments[aptIndex].serviceName} le ${new Date(appointments[aptIndex].date).toLocaleDateString('fr-FR')} à ${appointments[aptIndex].time} est CONFIRMÉ par le cabinet Dabakh.`);
+        
+        alert("Rendez-vous confirmé avec succès !");
+        refreshAdminPortal();
+    }
+}
+
+async function adminRefuseAppointment(aptId) {
+    if (confirm("Êtes-vous sûr de vouloir refuser ce rendez-vous ?")) {
+        const aptIndex = appointments.findIndex(a => a.id === aptId);
+        if (aptIndex !== -1) {
+            appointments[aptIndex].status = "Refusé";
+            localStorage.setItem('daba_appointments', JSON.stringify(appointments));
+            await saveAppointmentRemote(appointments[aptIndex]);
+            
+            triggerSmsAlert("REFUS RDV", `Désolé, votre demande de rendez-vous pour ${appointments[aptIndex].serviceName} a été refusée par le cabinet Dabakh.`);
+            
+            alert("Rendez-vous refusé.");
+            refreshAdminPortal();
+        }
+    }
+}
+
+// ── ADMIN PRESCRIPTION UPLOAD & DELIVERY ──────────────────────────────────
+function openPrescriptionModal(patientPhone, patientName) {
+    const modalId = "prescription-upload-modal";
+    if (document.getElementById(modalId)) return;
+
+    const modal = document.createElement("div");
+    modal.className = "modal-overlay";
+    modal.id = modalId;
+
+    modal.innerHTML = `
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>📄 Uploader une Ordonnance</h3>
+                <button class="modal-close-btn" onclick="closePrescriptionModal()"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-sm text-muted mb-1">Patient destinataire : <strong>${patientName}</strong> (${patientPhone})</p>
+                <form id="admin-prescription-form">
+                    <div class="form-group">
+                        <label for="presc-instructions">Instructions médicales / Posologie</label>
+                        <textarea id="presc-instructions" class="w-full" rows="3" placeholder="Ex: Exercices quotidiens de renforcement et de proprioception..." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="presc-file">Fichier de l'ordonnance (Image ou PDF)</label>
+                        <input type="file" id="presc-file" class="w-full" accept="image/*,application/pdf" required>
+                    </div>
+                    <div class="modal-footer flex justify-end gap-1 mt-1">
+                        <button type="button" class="btn btn-secondary" onclick="closePrescriptionModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary" id="btn-submit-presc">Transmettre au Patient</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    initLucideIcons();
+
+    const form = document.getElementById("admin-prescription-form");
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const instructions = document.getElementById("presc-instructions").value.trim();
+        const fileInput = document.getElementById("presc-file");
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            alert("Veuillez sélectionner un fichier.");
+            return;
+        }
+
+        const btnSubmit = document.getElementById("btn-submit-presc");
+        btnSubmit.disabled = true;
+        btnSubmit.innerText = "Téléchargement cloud...";
+
+        const fileUrl = await uploadFileToSupabase(file, patientPhone);
+        if (!fileUrl) {
+            alert("Erreur lors de l'envoi du fichier dans Supabase Storage.");
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = "Transmettre au Patient";
+            return;
+        }
+
+        const newDiag = {
+            id: `DIAG-${Date.now()}`,
+            serviceId: "ordonnance",
+            serviceName: "Ordonnance Médicale",
+            symptoms: instructions,
+            fileName: file.name,
+            fileUrl: fileUrl,
+            fileData: null,
+            status: "Délivrée",
+            createdAt: new Date().toISOString(),
+            patientName: patientName,
+            patientPhone: patientPhone
+        };
+
+        diagnostics.push(newDiag);
+        localStorage.setItem('daba_diagnostics', JSON.stringify(diagnostics));
+        await saveDiagnosticRemote(newDiag);
+
+        triggerSmsAlert("NOUVELLE ORDONNANCE", `Bonjour ${patientName}, une nouvelle ordonnance a été déposée dans votre espace patient par le Dr. MACODOU NDIAYE.`);
+
+        alert("Ordonnance téléversée et transmise avec succès au patient !");
+        closePrescriptionModal();
+        refreshAdminPortal();
+    });
+}
+
+function closePrescriptionModal() {
+    const modal = document.getElementById("prescription-upload-modal");
+    if (modal) modal.remove();
 }
 
 function renderAdminStats() {
