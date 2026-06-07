@@ -1514,12 +1514,14 @@ function renderDiagnosticsList() {
 
 function previewAttachedFile(diagId) {
     const diag = diagnostics.find(d => d.id === diagId);
-    if (!diag || !diag.fileData) return;
+    if (!diag || (!diag.fileUrl && !diag.fileData)) return;
 
     const modal = document.createElement("div");
     modal.className = "modal-overlay";
     modal.id = "attachment-preview-modal";
     
+    const displaySrc = diag.fileUrl || diag.fileData;
+
     modal.innerHTML = `
         <div class="modal-container">
             <div class="modal-header">
@@ -1527,7 +1529,7 @@ function previewAttachedFile(diagId) {
                 <button class="modal-close-btn" onclick="closeAttachmentPreview()"><i data-lucide="x"></i></button>
             </div>
             <div class="modal-body text-center bg-dark" style="padding:16px;">
-                <img src="${diag.fileData}" alt="Fichier médical" style="max-width:100%; max-height:400px; object-fit:contain; border-radius:4px; border: 1px solid var(--color-border);">
+                <img src="${displaySrc}" alt="Fichier médical" style="max-width:100%; max-height:400px; object-fit:contain; border-radius:4px; border: 1px solid var(--color-border);">
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeAttachmentPreview()">Fermer</button>
