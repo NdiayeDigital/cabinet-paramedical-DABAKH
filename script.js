@@ -96,6 +96,8 @@ async function syncFromSupabase() {
                         void toggleBtn.offsetWidth;
                         toggleBtn.classList.add("shake-animation");
                     }
+                    // Alerte visuelle pour l'administrateur
+                    alert(`🚨 Notification Cabinet (SMS simulé) :\n${n.title}\n${n.message}`);
                 }
               }).subscribe();
 
@@ -180,8 +182,20 @@ async function syncFromSupabase() {
                                 alert(`DABAKH CLINIC : Le statut de votre séance (${mappedApt.serviceName}) est passé à : ${mappedApt.status}`);
                             }
                         }
+
+                        // Notification immédiate pour l'administrateur en cas d'annulation par le patient
+                        if (isAdminMode && mappedApt.status === 'Annulé' && oldStatus !== 'Annulé') {
+                            if (typeof playNotificationSound === 'function') playNotificationSound();
+                            alert(`🚨 Annulation Patient :\nLe patient ${mappedApt.patientName} a annulé son rendez-vous de ${mappedApt.serviceName} prévu le ${new Date(mappedApt.date).toLocaleDateString('fr-FR')} à ${mappedApt.time}.`);
+                        }
                     } else {
                         appointments.push(mappedApt);
+
+                        // Notification immédiate pour l'administrateur en cas de nouvelle réservation par un patient
+                        if (isAdminMode) {
+                            if (typeof playNotificationSound === 'function') playNotificationSound();
+                            alert(`📅 Nouveau Rendez-vous Patient :\nLe patient ${mappedApt.patientName} a réservé un rendez-vous pour ${mappedApt.serviceName} le ${new Date(mappedApt.date).toLocaleDateString('fr-FR')} à ${mappedApt.time}.`);
+                        }
                     }
                 } else if (payload.eventType === 'DELETE') {
                     appointments = appointments.filter(a => a.id !== oldApt.id);
