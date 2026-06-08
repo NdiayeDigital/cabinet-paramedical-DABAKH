@@ -254,8 +254,7 @@ img {
     width: auto;
     object-fit: contain;
     display: block;
-    /* White logo on dark header needs a filter tweak if background is white */
-    filter: brightness(0) invert(1);
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.4));
     transition: opacity 0.2s ease;
 }
 .logo-img-header:hover { opacity: 0.85; }
@@ -266,7 +265,7 @@ img {
     width: auto;
     object-fit: contain;
     display: block;
-    filter: brightness(0) invert(1);
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
     margin-bottom: 4px;
 }
 
