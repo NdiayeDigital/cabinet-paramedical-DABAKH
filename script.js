@@ -2513,7 +2513,76 @@ function renderAdminStats() {
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
     svg.innerHTML = svgHTML;
 
-    // Update stat counters
+    // 1. Calcul et rendu du volume de rendez-vous par spécialité
+    const specCounts = {};
+    SERVICES_DATA.forEach(s => {
+        specCounts[s.name] = 0;
+    });
+
+    appointments.forEach(a => {
+        if (a.serviceName) {
+            specCounts[a.serviceName] = (specCounts[a.serviceName] || 0) + 1;
+        }
+    });
+
+    const totalApts = appointments.length;
+    const specContainer = document.getElementById("stats-specialities-container");
+    if (specContainer) {
+        if (totalApts === 0) {
+            specContainer.innerHTML = `<div class="text-center text-muted p-3">Aucun rendez-vous enregistré</div>`;
+        } else {
+            // Trier par volume décroissant
+            const sortedSpecs = Object.entries(specCounts).sort((a, b) => b[1] - a[1]);
+            specContainer.innerHTML = sortedSpecs.map(([name, count]) => {
+                const pct = totalApts > 0 ? Math.round((count / totalApts) * 100) : 0;
+                return `
+                    <div style="margin-bottom: 12px;">
+                        <div class="flex justify-between text-xs mb-05 font-medium">
+                            <span class="text-white">${name}</span>
+                            <span class="text-accent" style="font-weight: 600;">${count} RDV (${pct}%)</span>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.05); border-radius: 4px; height: 8px; width: 100%; overflow: hidden;">
+                            <div style="background: linear-gradient(90deg, #0ea5e9, #06b6d4); width: ${pct}%; height: 100%; border-radius: 4px; transition: width 0.8s ease;"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+    // 2. Calcul et rendu de la répartition géographique des patients par région
+    const regionCounts = {};
+    registeredPatients.forEach(p => {
+        const reg = p.region || "Dakar";
+        regionCounts[reg] = (regionCounts[reg] || 0) + 1;
+    });
+
+    const totalPatients = registeredPatients.length;
+    const regionContainer = document.getElementById("stats-regions-container");
+    if (regionContainer) {
+        if (totalPatients === 0) {
+            regionContainer.innerHTML = `<div class="text-center text-muted p-3">Aucun patient inscrit</div>`;
+        } else {
+            // Trier par volume décroissant
+            const sortedRegions = Object.entries(regionCounts).sort((a, b) => b[1] - a[1]);
+            regionContainer.innerHTML = sortedRegions.map(([region, count]) => {
+                const pct = totalPatients > 0 ? Math.round((count / totalPatients) * 100) : 0;
+                return `
+                    <div style="margin-bottom: 12px;">
+                        <div class="flex justify-between text-xs mb-05 font-medium">
+                            <span class="text-white">📍 ${region}</span>
+                            <span class="text-success" style="font-weight: 600;">${count} patient${count > 1 ? 's' : ''} (${pct}%)</span>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.05); border-radius: 4px; height: 8px; width: 100%; overflow: hidden;">
+                            <div style="background: linear-gradient(90deg, #10b981, #34d399); width: ${pct}%; height: 100%; border-radius: 4px; transition: width 0.8s ease;"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+    // Mise à jour des compteurs de statistiques globaux
     const elTotalPat = document.getElementById('stats-total-patients');
     const elTotalRdv = document.getElementById('stats-total-rdv');
     const elTotalDocs = document.getElementById('stats-total-docs');

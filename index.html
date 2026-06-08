@@ -1233,6 +1233,35 @@
                             </div>
                         </div>
 
+                        <!-- Real-time dynamic charts based on Supabase DB data -->
+                        <div class="grid grid-2 gap-2 mt-2">
+                            <!-- Volume by Speciality -->
+                            <div class="card bg-glass">
+                                <div class="card-header flex justify-between align-center">
+                                    <h3>📊 Volume de RDV par Spécialité</h3>
+                                    <span class="badge badge-accent">Temps Réel</span>
+                                </div>
+                                <div class="card-body mt-1" style="min-height: 250px; background: rgba(5,8,16,0.3); border-radius: 8px; padding: 15px;">
+                                    <div id="stats-specialities-container" class="flex flex-column gap-1">
+                                        <!-- Injecté dynamiquement depuis Supabase -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Distribution by Region -->
+                            <div class="card bg-glass">
+                                <div class="card-header flex justify-between align-center">
+                                    <h3>🌍 Répartition des Patients par Région</h3>
+                                    <span class="badge badge-accent">Démographie</span>
+                                </div>
+                                <div class="card-body mt-1" style="min-height: 250px; background: rgba(5,8,16,0.3); border-radius: 8px; padding: 15px;">
+                                    <div id="stats-regions-container" class="flex flex-column gap-1">
+                                        <!-- Injecté dynamiquement depuis Supabase -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="grid grid-3 gap-15 mt-2">
                             <div class="metric-card bg-glass">
                                 <div class="flex justify-between align-center">
