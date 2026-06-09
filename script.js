@@ -87,17 +87,47 @@ async function syncFromSupabase() {
                     localStorage.setItem('daba_sms', JSON.stringify(smsNotifications));
                 }
                 
+                let shouldNotify = false;
+                let cleanMessage = n.message.replace(/\[Target:\s*([^\]]+)\]/, '').trim();
+                
                 if (isAdminMode) {
+                    shouldNotify = true;
+                } else if (currentUser) {
+                    const patientPhoneClean = currentUser.phone.replace(/\s+/g, '');
+                    const targetMatch = n.message.match(/\[Target:\s*([^\]]+)\]/);
+                    if (targetMatch) {
+                        shouldNotify = (targetMatch[1].trim() === patientPhoneClean);
+                    } else {
+                        shouldNotify = n.message.includes(patientPhoneClean) || 
+                                       n.message.toLowerCase().includes(currentUser.name.toLowerCase());
+                    }
+                }
+
+                if (shouldNotify) {
                     if (typeof refreshAdminSMSLogs === 'function') refreshAdminSMSLogs();
                     if (typeof playNotificationSound === 'function') playNotificationSound();
+                    
                     const toggleBtn = document.getElementById("phone-toggle-btn");
                     if (toggleBtn) {
                         toggleBtn.classList.remove("shake-animation");
                         void toggleBtn.offsetWidth;
                         toggleBtn.classList.add("shake-animation");
                     }
-                    // Alerte visuelle pour l'administrateur
-                    alert(`🚨 Notification Cabinet (SMS simulé) :\n${n.title}\n${n.message}`);
+
+                    const badge = document.getElementById("phone-unread-count");
+                    if (badge) {
+                        const currentCount = parseInt(badge.innerText) || 0;
+                        const newCount = currentCount + 1;
+                        badge.innerText = newCount;
+                        badge.classList.remove("hidden");
+                    }
+
+                    if (typeof triggerTopScreenBanner === 'function') {
+                        triggerTopScreenBanner(n.title, cleanMessage);
+                    }
+
+                    // Visual alert
+                    alert(`📱 SMS reçu - DABAKH CLINIC :\n${n.title}\n${cleanMessage}`);
                 }
               }).subscribe();
 
@@ -1107,6 +1137,8 @@ function checkAuthState() {
             document.getElementById("header-patient-id").innerText = "DABAKH-AD";
             document.getElementById("header-avatar").innerText = "AD";
             if (adminPhone) adminPhone.classList.remove("hidden");
+            updatePhoneSimulatorHeader();
+            refreshAdminSMSLogs();
             refreshAdminPortal();
         } else {
             sidebarPatient.classList.remove("hidden");
@@ -1127,7 +1159,11 @@ function checkAuthState() {
 
             document.querySelectorAll(".user-placeholder-name").forEach(el => el.innerText = currentUser.name);
 
-            if (adminPhone) adminPhone.classList.add("hidden");
+            // Rendre le simulateur de téléphone disponible au patient pour recevoir ses SMS
+            if (adminPhone) adminPhone.classList.remove("hidden");
+            updatePhoneSimulatorHeader();
+            refreshAdminSMSLogs();
+            checkAppointmentReminders();
 
             renderDashboardOverview();
             renderBookingPreview();
@@ -1139,6 +1175,84 @@ function checkAuthState() {
         // Déconnecté → page d'authentification
         showPage('auth-page');
         if (adminPhone) adminPhone.classList.add("hidden");
+    }
+}
+
+function updatePhoneSimulatorHeader() {
+    const toggleBtnSpan = document.querySelector("#phone-toggle-btn span");
+    const headerTitle = document.querySelector(".phone-header h4");
+    const headerNumber = document.querySelector(".phone-header .number");
+    const avatar = document.querySelector(".phone-avatar");
+
+    if (currentUser && !isAdminMode) {
+        if (toggleBtnSpan) toggleBtnSpan.textContent = `Mon Téléphone (${currentUser.phone})`;
+        if (headerTitle) headerTitle.textContent = "Cabinet DABAKH (SMS)";
+        if (headerNumber) headerNumber.textContent = "+221 77 209 17 25";
+        if (avatar) avatar.textContent = "C";
+    } else {
+        if (toggleBtnSpan) toggleBtnSpan.textContent = "Cabinet Receiver (77 209 17 25)";
+        if (headerTitle) headerTitle.textContent = "Réception CABINET PARAMÉDICAL DABAKH";
+        if (headerNumber) headerNumber.textContent = "77 209 17 25";
+        if (avatar) avatar.textContent = "D";
+    }
+}
+
+function checkAppointmentReminders() {
+    if (!currentUser || isAdminMode) return;
+    
+    const now = new Date();
+    const patientPhoneClean = currentUser.phone.replace(/\s+/g, '');
+    
+    // Find all upcoming confirmed appointments for this patient
+    const patientApts = appointments.filter(a => 
+        a.status === "Confirmé" && 
+        a.patientPhone && 
+        a.patientPhone.replace(/\s+/g, '') === patientPhoneClean
+    );
+
+    let sentReminders = safeGetLocalStorage('daba_sent_reminders', []);
+    let updated = false;
+
+    patientApts.forEach(apt => {
+        try {
+            const dateStr = apt.date; // e.g. "2026-06-10"
+            const timeStr = apt.time.replace('h', ':'); // e.g. "10:00" or "10h00" -> "10:00"
+            const aptDateTime = new Date(`${dateStr}T${timeStr}:00`);
+            
+            if (isNaN(aptDateTime.getTime())) return;
+
+            const timeDiffMs = aptDateTime - now;
+            const timeDiffHours = timeDiffMs / (1000 * 60 * 60);
+
+            // If appointment is in the future and less than 24 hours away
+            if (timeDiffHours > 0 && timeDiffHours <= 24) {
+                const reminderKey = `reminder-24h-${apt.id}`;
+                if (!sentReminders.includes(reminderKey)) {
+                    const reminderMsg = `RAPPEL DABAKH : Bonjour ${currentUser.name}, nous vous rappelons votre séance de ${apt.serviceName} prévue demain (${new Date(apt.date).toLocaleDateString('fr-FR')}) à ${apt.time} au Cabinet Dabakh.`;
+                    triggerSmsAlert("RAPPEL DE SÉANCE (24h)", reminderMsg, currentUser.phone);
+                    
+                    sentReminders.push(reminderKey);
+                    updated = true;
+                }
+            }
+            // Also support 48h reminder
+            else if (timeDiffHours > 24 && timeDiffHours <= 48) {
+                const reminderKey = `reminder-48h-${apt.id}`;
+                if (!sentReminders.includes(reminderKey)) {
+                    const reminderMsg = `RAPPEL DABAKH : Bonjour ${currentUser.name}, nous vous rappelons votre séance de ${apt.serviceName} prévue dans 2 jours (${new Date(apt.date).toLocaleDateString('fr-FR')}) à ${apt.time} au Cabinet Dabakh.`;
+                    triggerSmsAlert("RAPPEL DE SÉANCE (48h)", reminderMsg, currentUser.phone);
+                    
+                    sentReminders.push(reminderKey);
+                    updated = true;
+                }
+            }
+        } catch (err) {
+            console.error("Error parsing appointment date/time for reminders:", err);
+        }
+    });
+
+    if (updated) {
+        localStorage.setItem('daba_sent_reminders', JSON.stringify(sentReminders));
     }
 }
 
@@ -1846,7 +1960,7 @@ function cancelAppointmentFromHistory(aptId) {
         localStorage.setItem('daba_appointments', JSON.stringify(appointments));
         saveAppointmentRemote(apt);
         
-        triggerSmsAlert("RENDEZ-VOUS ANNULÉ", `Séance annulée par le patient.\nNom: ${currentUser.name}\nService: ${apt.serviceName}\nDate: ${new Date(apt.date).toLocaleDateString('fr-FR')} à ${apt.time}.`);
+        triggerSmsAlert("RENDEZ-VOUS ANNULÉ", `Séance annulée par le patient.\nNom: ${currentUser.name}\nService: ${apt.serviceName}\nDate: ${new Date(apt.date).toLocaleDateString('fr-FR')} à ${apt.time}.`, currentUser.phone);
         
         checkAuthState();
         alert("Votre rendez-vous a bien été annulé.");
@@ -1969,11 +2083,16 @@ function setupSmsSimulator() {
     }
 }
 
-function triggerSmsAlert(title, message) {
+function triggerSmsAlert(title, message, targetPhone = null) {
+    let finalMessage = message;
+    if (targetPhone) {
+        finalMessage += `\n[Target: ${targetPhone.replace(/\s+/g, '')}]`;
+    }
+
     const newSms = {
         id: `SMS-${Date.now()}`,
         title,
-        message,
+        message: finalMessage,
         time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
     };
 
@@ -1983,7 +2102,23 @@ function triggerSmsAlert(title, message) {
         smsNotifications.push(newSms);
         localStorage.setItem('daba_sms', JSON.stringify(smsNotifications));
 
+        // In offline/local mode, determine if current user should be notified
+        let shouldNotify = false;
+        let cleanMessage = message.trim();
+
         if (isAdminMode) {
+            shouldNotify = true;
+        } else if (currentUser) {
+            const patientPhoneClean = currentUser.phone.replace(/\s+/g, '');
+            if (targetPhone) {
+                shouldNotify = (targetPhone.replace(/\s+/g, '') === patientPhoneClean);
+            } else {
+                shouldNotify = message.includes(patientPhoneClean) || 
+                               message.toLowerCase().includes(currentUser.name.toLowerCase());
+            }
+        }
+
+        if (shouldNotify) {
             refreshAdminSMSLogs();
             playNotificationSound();
 
@@ -2003,7 +2138,7 @@ function triggerSmsAlert(title, message) {
             }
 
             if (typeof triggerTopScreenBanner === 'function') {
-                triggerTopScreenBanner(title, message);
+                triggerTopScreenBanner(title, cleanMessage);
             }
         }
     }
@@ -2013,9 +2148,10 @@ function refreshAdminSMSLogs() {
     const smsContainer = document.getElementById("phone-sms-container");
     if (!smsContainer) return;
 
+    const phoneNum = currentUser && !isAdminMode ? currentUser.phone : "77 209 17 25";
     const systemMsg = `
         <div class="sms-system-message">
-            <p>📟 Terminal SMS activé. Les notifications du cabinet pour le numéro <strong>77 209 17 25</strong> s'afficheront ici en temps réel pour démonstration.</p>
+            <p>📟 Terminal SMS activé. Les notifications du cabinet pour le numéro <strong>${phoneNum}</strong> s'afficheront ici en temps réel pour démonstration.</p>
         </div>
     `;
 
@@ -2024,18 +2160,33 @@ function refreshAdminSMSLogs() {
         return;
     }
 
-    const messagesHtml = smsNotifications.map(sms => {
-        return `
-            <div class="sms-bubble">
-                <div class="sms-meta">
-                    <span>📡 ${sms.title}</span>
-                    <span>77 209 17 25</span>
+    const messagesHtml = smsNotifications
+        .filter(sms => {
+            if (isAdminMode) return true;
+            if (!currentUser) return false;
+            const patientPhoneClean = currentUser.phone.replace(/\s+/g, '');
+            
+            const targetMatch = sms.message.match(/\[Target:\s*([^\]]+)\]/);
+            if (targetMatch) {
+                return targetMatch[1].trim() === patientPhoneClean;
+            }
+            
+            return sms.message.includes(patientPhoneClean) || 
+                   sms.message.toLowerCase().includes(currentUser.name.toLowerCase());
+        })
+        .map(sms => {
+            const cleanMessage = sms.message.replace(/\[Target:\s*([^\]]+)\]/, '').trim();
+            return `
+                <div class="sms-bubble">
+                    <div class="sms-meta">
+                        <span>📡 ${sms.title}</span>
+                        <span>${phoneNum}</span>
+                    </div>
+                    <div class="sms-text">${cleanMessage.replace(/\n/g, '<br>')}</div>
+                    <span class="sms-time">${sms.time}</span>
                 </div>
-                <div class="sms-text">${sms.message.replace(/\n/g, '<br>')}</div>
-                <span class="sms-time">${sms.time}</span>
-            </div>
-        `;
-    }).join('');
+            `;
+        }).join('');
 
     smsContainer.innerHTML = systemMsg + messagesHtml;
     smsContainer.scrollTop = smsContainer.scrollHeight;
@@ -2371,6 +2522,13 @@ function adminCancelAppointment(aptId) {
             appointments[aptIndex].status = "Annulé";
             localStorage.setItem('daba_appointments', JSON.stringify(appointments));
             saveAppointmentRemote(appointments[aptIndex]);
+            
+            triggerSmsAlert(
+                "RENDEZ-VOUS ANNULÉ", 
+                `Bonjour, votre rendez-vous pour ${appointments[aptIndex].serviceName} a été ANNULÉ par le cabinet Dabakh.`,
+                appointments[aptIndex].patientPhone
+            );
+
             alert("Rendez-vous annulé.");
             refreshAdminPortal();
             if (currentUser && currentUser.phone === appointments[aptIndex].patientPhone) {
@@ -2393,6 +2551,13 @@ function adminEditAppointmentPrompt(aptId) {
             apt.time = newTime;
             localStorage.setItem('daba_appointments', JSON.stringify(appointments));
             saveAppointmentRemote(apt);
+            
+            triggerSmsAlert(
+                "RENDEZ-VOUS MODIFIÉ", 
+                `Bonjour, votre rendez-vous pour ${apt.serviceName} a été déplacé au ${new Date(newDate).toLocaleDateString('fr-FR')} à ${newTime} par le cabinet Dabakh.`,
+                apt.patientPhone
+            );
+
             alert("Rendez-vous modifié avec succès.");
             refreshAdminPortal();
             if (currentUser && currentUser.phone === apt.patientPhone) {
@@ -2411,7 +2576,11 @@ async function adminConfirmAppointment(aptId) {
         localStorage.setItem('daba_appointments', JSON.stringify(appointments));
         await saveAppointmentRemote(appointments[aptIndex]);
         
-        triggerSmsAlert("CONFIRMATION RDV", `Votre rendez-vous pour ${appointments[aptIndex].serviceName} le ${new Date(appointments[aptIndex].date).toLocaleDateString('fr-FR')} à ${appointments[aptIndex].time} est CONFIRMÉ par le cabinet Dabakh.`);
+        triggerSmsAlert(
+            "CONFIRMATION RDV", 
+            `Votre rendez-vous pour ${appointments[aptIndex].serviceName} le ${new Date(appointments[aptIndex].date).toLocaleDateString('fr-FR')} à ${appointments[aptIndex].time} est CONFIRMÉ par le cabinet Dabakh.`,
+            appointments[aptIndex].patientPhone
+        );
         
         alert("Rendez-vous confirmé avec succès !");
         refreshAdminPortal();
@@ -2426,7 +2595,11 @@ async function adminRefuseAppointment(aptId) {
             localStorage.setItem('daba_appointments', JSON.stringify(appointments));
             await saveAppointmentRemote(appointments[aptIndex]);
             
-            triggerSmsAlert("REFUS RDV", `Désolé, votre demande de rendez-vous pour ${appointments[aptIndex].serviceName} a été refusée par le cabinet Dabakh.`);
+            triggerSmsAlert(
+                "REFUS RDV", 
+                `Désolé, votre demande de rendez-vous pour ${appointments[aptIndex].serviceName} a été refusée par le cabinet Dabakh.`,
+                appointments[aptIndex].patientPhone
+            );
             
             alert("Rendez-vous refusé.");
             refreshAdminPortal();
