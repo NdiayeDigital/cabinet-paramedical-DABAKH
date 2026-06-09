@@ -249,7 +249,7 @@ async function saveDiagnosticRemote(d) {
     await supabaseClient.from('diagnostics').upsert([{
         id: d.id, patient_phone: d.patientPhone || d.phone || '', patient_name: d.patientName || d.name || 'Inconnu',
         service_id: d.serviceId || 'consultation', service_name: d.serviceName || 'Consultation',
-        symptoms: d.symptoms || '', file_name: d.fileName || '', file_url: d.fileUrl || d.fileData || '',
+        symptoms: d.symptoms || '', file_name: d.fileName || '', file_url: d.fileUrl || '',
         file_type: d.fileType || '', ai_analysis: d.aiAnalysis || '', status: d.status || 'En attente',
         admin_notes: d.adminNotes || '', submitted_at: d.createdAt || new Date().toISOString()
     }]);
@@ -302,6 +302,15 @@ let currentUser = safeGetLocalStorage('daba_user', null);
 let isAdminMode = safeGetLocalStorage('daba_admin_mode', false);
 let appointments = safeGetLocalStorage('daba_appointments', []);
 let diagnostics = safeGetLocalStorage('daba_diagnostics', []);
+// Clean base64 fileData from local cache to prevent localStorage quota exceeded errors
+diagnostics = diagnostics.map(d => {
+    if (d.fileData) {
+        delete d.fileData;
+    }
+    return d;
+});
+localStorage.setItem('daba_diagnostics', JSON.stringify(diagnostics));
+
 let smsNotifications = safeGetLocalStorage('daba_sms', []);
 
 // Pre-populated medical database for beautiful dashboard analytics
@@ -1548,14 +1557,18 @@ function setupDiagnosticDropzone() {
                 btnSubmit.disabled = false;
                 btnSubmit.innerText = "Soumettre pour Étude au Cabinet";
 
+                if (!uploadedFileUrl) {
+                    alert("Erreur : le fichier n'a pas pu être téléversé dans le cloud. Veuillez réessayer.");
+                    return;
+                }
+
                 const newDiag = {
                     id: `DIAG-${Date.now()}`,
                     serviceId,
                     serviceName: service.name,
                     symptoms,
-                    fileName: currentSelectedDiagFile ? currentSelectedDiagFile.name : (uploadedFileUrl ? uploadedFileUrl.split('/').pop() : "Document_Medical_Dabakh.jpg"),
-                    fileUrl:  uploadedFileUrl  || null,   // URL Supabase Storage
-                    fileData: uploadedFileUrl  ? null : uploadedFileBase64, // backup local
+                    fileName: currentSelectedDiagFile ? currentSelectedDiagFile.name : uploadedFileUrl.split('/').pop(),
+                    fileUrl: uploadedFileUrl,
                     status: "En cours d'étude",
                     createdAt: new Date().toISOString(),
                     patientName:  currentUser ? currentUser.name  : "Inconnu",
@@ -1663,13 +1676,16 @@ function renderDiagnosticsList() {
 
 function previewAttachedFile(diagId) {
     const diag = diagnostics.find(d => d.id === diagId);
-    if (!diag || (!diag.fileUrl && !diag.fileData)) return;
+    if (!diag || !diag.fileUrl) {
+        alert("Aucun fichier disponible pour ce document.");
+        return;
+    }
 
     const modal = document.createElement("div");
     modal.className = "modal-overlay";
     modal.id = "attachment-preview-modal";
     
-    const displaySrc = diag.fileUrl || diag.fileData;
+    const displaySrc = diag.fileUrl;
 
     modal.innerHTML = `
         <div class="modal-container">
@@ -2429,7 +2445,7 @@ function openPrescriptionModal(patientPhone, patientName) {
             symptoms: instructions,
             fileName: file.name,
             fileUrl: fileUrl,
-            fileData: null,
+
             status: "Délivrée",
             createdAt: new Date().toISOString(),
             patientName: patientName,
