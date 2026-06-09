@@ -477,12 +477,16 @@ let uploadedFileBase64 = "";
 // ── INITIALIZE APPLICATION ───────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
     initLucideIcons();
-    try {
-        await syncFromSupabase();
-    } catch (err) {
-        console.error("Supabase sync failed, continuing offline/local:", err);
-    }
-    checkOnboarding();
+    
+    // Start loader and sync in parallel
+    const syncPromise = (async () => {
+        try {
+            await syncFromSupabase();
+        } catch (err) {
+            console.error("Supabase sync failed, continuing offline/local:", err);
+        }
+    })();
+
     setupNavigation();
     setupAuthHandlers();
     setupSmsSimulator();
@@ -492,12 +496,66 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupHealthChatbot();
     setupWhatsAppContact();
     setupAssociateServiceToggle();
-    checkAuthState();
     refreshAdminSMSLogs();
     setupAdminPortalHandlers();
 
+    // Wait for splash animation and sync to complete
+    await Promise.all([runSplashLoader(), syncPromise]);
+
+    checkOnboarding();
+    checkAuthState();
+
     window.scrollTo({ top: 0, behavior: 'instant' });
 });
+
+function runSplashLoader() {
+    return new Promise((resolve) => {
+        const progressBar = document.getElementById("splash-progress-bar");
+        const statusText = document.getElementById("splash-status");
+        const splashScreen = document.getElementById("splash-screen");
+        
+        if (!splashScreen) {
+            resolve();
+            return;
+        }
+
+        let progress = 0;
+        const intervalTime = 30; // 30ms
+        const totalDuration = 3000; // 3 seconds
+        const steps = totalDuration / intervalTime;
+        const increment = 100 / steps;
+
+        const loaderInterval = setInterval(() => {
+            progress += increment;
+            if (progress > 100) progress = 100;
+
+            if (progressBar) {
+                progressBar.style.width = `${progress}%`;
+            }
+
+            if (statusText) {
+                if (progress < 25) {
+                    statusText.innerText = "Connexion sécurisée aux serveurs...";
+                } else if (progress < 55) {
+                    statusText.innerText = "Chargement des dossiers médicaux...";
+                } else if (progress < 85) {
+                    statusText.innerText = "Vérification des accès chiffrés...";
+                } else {
+                    statusText.innerText = "Bienvenue sur Dabakh Clinic !";
+                }
+            }
+
+            if (progress >= 100) {
+                clearInterval(loaderInterval);
+                splashScreen.classList.add("fade-out");
+                setTimeout(() => {
+                    splashScreen.style.display = "none";
+                    resolve();
+                }, 800); // Wait for transition fade-out
+            }
+        }, intervalTime);
+    });
+}
 
 function initLucideIcons() {
     if (window.lucide) {
