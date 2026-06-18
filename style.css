@@ -199,6 +199,45 @@ img {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
+.btn-whatsapp {
+    background-color: #25D366;
+    color: #fff !important;
+    box-shadow: 0 4px 14px rgba(37, 211, 102, 0.3);
+}
+.btn-whatsapp:hover {
+    background-color: #20ba5a;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(37, 211, 102, 0.45);
+}
+
+/* Floating WhatsApp button */
+.floating-whatsapp {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    background-color: #25D366;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    z-index: 999;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+.floating-whatsapp:hover {
+    transform: scale(1.1) rotate(10deg);
+    background-color: #20ba5a;
+}
+.floating-whatsapp svg {
+    width: 32px;
+    height: 32px;
+}
+
+
 /* Glass Panels */
 .bg-glass {
     background: var(--color-bg-glass);

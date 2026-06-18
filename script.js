@@ -1741,6 +1741,7 @@ function setupDiagnosticDropzone() {
                     symptoms,
                     fileName: currentSelectedDiagFile ? currentSelectedDiagFile.name : uploadedFileUrl.split('/').pop(),
                     fileUrl: uploadedFileUrl,
+                    fileType: currentSelectedDiagFile ? currentSelectedDiagFile.type : "",
                     status: "En cours d'étude",
                     createdAt: new Date().toISOString(),
                     patientName:  currentUser ? currentUser.name  : "Inconnu",
@@ -1758,7 +1759,7 @@ function setupDiagnosticDropzone() {
                 diagForm.reset();
                 removeUploadedFile();
                 checkAuthState();
-            }, 3000);
+            }, 5000);
         });
     }
 }
@@ -1773,7 +1774,25 @@ function handleUploadedFile(file) {
         document.getElementById("diag-dropzone").classList.add("hidden");
         const container = document.getElementById("upload-preview-container");
         container.classList.remove("hidden");
-        document.getElementById("upload-preview").src = uploadedFileBase64;
+
+        const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+        const imgPreview = document.getElementById("upload-preview");
+        const pdfPreview = document.getElementById("pdf-preview-icon");
+
+        if (isPdf) {
+            if (imgPreview) imgPreview.classList.add("hidden");
+            if (pdfPreview) {
+                pdfPreview.classList.remove("hidden");
+                const fnameEl = document.getElementById("pdf-preview-filename");
+                if (fnameEl) fnameEl.innerText = file.name;
+            }
+        } else {
+            if (pdfPreview) pdfPreview.classList.add("hidden");
+            if (imgPreview) {
+                imgPreview.classList.remove("hidden");
+                imgPreview.src = uploadedFileBase64;
+            }
+        }
 
         // 2. Upload en arrière-plan vers Supabase Storage
         const phone = currentUser ? currentUser.phone : 'anonyme';
@@ -1794,7 +1813,16 @@ function removeUploadedFile() {
     document.getElementById("diag-file-input").value = "";
     document.getElementById("diag-dropzone").classList.remove("hidden");
     document.getElementById("upload-preview-container").classList.add("hidden");
-    document.getElementById("upload-preview").src = "";
+    
+    const imgPreview = document.getElementById("upload-preview");
+    if (imgPreview) {
+        imgPreview.src = "";
+        imgPreview.classList.remove("hidden");
+    }
+    const pdfPreview = document.getElementById("pdf-preview-icon");
+    if (pdfPreview) {
+        pdfPreview.classList.add("hidden");
+    }
 }
 
 function renderDiagnosticsList() {
@@ -1825,14 +1853,22 @@ function renderDiagnosticsList() {
         if (diag.status === "Délivrée") badgeClass = "badge-success";
         if (diag.status === "En cours d'étude") badgeClass = "badge-accent";
 
+        const isPrescription = diag.serviceId === "ordonnance";
+        const typeBadge = isPrescription 
+            ? `<span class="badge badge-success-outline" style="margin-left: 8px;"><i data-lucide="file-check" class="inline-icon mr-05" style="width: 14px; height: 14px; margin-right: 4px;"></i> Ordonnance</span>` 
+            : `<span class="badge badge-secondary" style="margin-left: 8px;"><i data-lucide="file-text" class="inline-icon mr-05" style="width: 14px; height: 14px; margin-right: 4px;"></i> Document Patient</span>`;
+
         return `
-            <div class="diagnostic-item-card bg-dark">
+            <div class="diagnostic-item-card bg-dark" style="border-left: 4px solid ${isPrescription ? 'var(--color-success)' : 'var(--color-accent)'};">
                 <div class="diag-item-header">
-                    <h4>${diag.serviceName}</h4>
+                    <div class="flex align-center">
+                        <h4 style="margin:0;">${diag.serviceName}</h4>
+                        ${typeBadge}
+                    </div>
                     <span class="badge ${badgeClass}">${diag.status}</span>
                 </div>
                 <div class="diag-item-body">
-                    <p class="mb-05"><strong>Note / Description :</strong> ${diag.symptoms}</p>
+                    <p class="mb-05"><strong>Description / Instructions :</strong> ${diag.symptoms}</p>
                     <span class="text-xs text-muted">Transmis le ${dateStr}</span>
                 </div>
                 <div class="diag-item-attachment" onclick="previewAttachedFile('${diag.id}')">
@@ -1858,6 +1894,25 @@ function previewAttachedFile(diagId) {
     modal.id = "attachment-preview-modal";
     
     const displaySrc = diag.fileUrl;
+    const isPdf = diag.fileName.toLowerCase().endsWith(".pdf") || (diag.fileType && diag.fileType.includes("pdf"));
+
+    let bodyContent = "";
+    if (isPdf) {
+        bodyContent = `
+            <div style="padding: 40px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <i data-lucide="file-text" style="width: 72px; height: 72px; color: var(--color-accent); margin-bottom: 16px;"></i>
+                <p class="font-bold mb-1">Document PDF : ${diag.fileName}</p>
+                <p class="text-muted text-sm mb-15">Cliquez ci-dessous pour ouvrir et consulter le document dans un nouvel onglet.</p>
+                <a href="${displaySrc}" target="_blank" class="btn btn-primary">
+                    <i data-lucide="external-link"></i> Ouvrir le document PDF
+                </a>
+            </div>
+        `;
+    } else {
+        bodyContent = `
+            <img src="${displaySrc}" alt="Fichier médical" style="max-width:100%; max-height:400px; object-fit:contain; border-radius:4px; border: 1px solid var(--color-border);">
+        `;
+    }
 
     modal.innerHTML = `
         <div class="modal-container">
@@ -1866,9 +1921,12 @@ function previewAttachedFile(diagId) {
                 <button class="modal-close-btn" onclick="closeAttachmentPreview()"><i data-lucide="x"></i></button>
             </div>
             <div class="modal-body text-center bg-dark" style="padding:16px;">
-                <img src="${displaySrc}" alt="Fichier médical" style="max-width:100%; max-height:400px; object-fit:contain; border-radius:4px; border: 1px solid var(--color-border);">
+                ${bodyContent}
             </div>
             <div class="modal-footer">
+                <a href="${displaySrc}" download="${diag.fileName}" target="_blank" class="btn btn-primary">
+                    <i data-lucide="download"></i> Télécharger / Ouvrir
+                </a>
                 <button class="btn btn-secondary" onclick="closeAttachmentPreview()">Fermer</button>
             </div>
         </div>
@@ -2676,7 +2734,7 @@ function openPrescriptionModal(patientPhone, patientName) {
             symptoms: instructions,
             fileName: file.name,
             fileUrl: fileUrl,
-
+            fileType: file.type,
             status: "Délivrée",
             createdAt: new Date().toISOString(),
             patientName: patientName,
