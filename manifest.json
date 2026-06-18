@@ -1,0 +1,18 @@
+{
+  "name": "Cabinet Paramédical DABAKH",
+  "short_name": "Dabakh",
+  "description": "Cabinet Paramédical DABAKH - Kinésithérapie & Rééducation Spécialisée",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0d1527",
+  "theme_color": "#059669",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "images/logo-dabakh.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
