@@ -847,17 +847,18 @@ function appSwitchTab(tabId) {
     if (sidebar) sidebar.classList.remove("open");
     if (sidebarOverlay) sidebarOverlay.classList.remove("active");
 
+    const isMobile = window.innerWidth <= 768;
     const titleMap = {
-        'tab-overview': 'Dossier de Rééducation',
-        'tab-book-appointment': 'Prendre un Rendez-vous',
-        'tab-diagnostics': 'Diagnostics & Études',
-        'tab-history': 'Historique des Soins',
-        'tab-chatbot': 'Copilote Santé Dabakh',
-        'tab-admin-overview': 'Patients Inscrits',
-        'tab-admin-add-patient': 'Ajouter un Patient',
-        'tab-waiting-room': 'Salle d\'Attente',
+        'tab-overview': isMobile ? 'Dossier' : 'Dossier de Rééducation',
+        'tab-book-appointment': isMobile ? 'Nouveau RDV' : 'Prendre un Rendez-vous',
+        'tab-diagnostics': isMobile ? 'Diagnostics' : 'Diagnostics & Études',
+        'tab-history': isMobile ? 'Historique' : 'Historique des Soins',
+        'tab-chatbot': 'Copilote Santé',
+        'tab-admin-overview': isMobile ? 'PI' : 'Patients Inscrits',
+        'tab-admin-add-patient': isMobile ? 'Ajouter' : 'Ajouter un Patient',
+        'tab-waiting-room': isMobile ? 'Attente' : 'Salle d\'Attente',
         'tab-admin-stats': 'Statistiques',
-        'tab-admin-profiles': 'Profils Utilisateurs'
+        'tab-admin-profiles': isMobile ? 'Profils' : 'Profils Utilisateurs'
     };
     const titleHeader = document.getElementById("app-page-title");
     if (titleHeader && titleMap[tabId]) {

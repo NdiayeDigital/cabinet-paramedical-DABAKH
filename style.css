@@ -2157,7 +2157,13 @@ html, body {
     .app-header { padding: 14px 18px; }
     .app-content-container { padding: 16px; }
     .metric-value { font-size: 1.3rem; }
-    .page-title { font-size: 1.15rem; }
+    .page-title { 
+        font-size: 0.95rem; 
+        max-width: 100px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
     /* Booking */
     .time-slots-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
