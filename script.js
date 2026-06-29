@@ -1153,7 +1153,7 @@ function checkAuthState() {
             document.getElementById("header-patient-id-label").innerText = "ID Admin :";
             document.getElementById("header-patient-id").innerText = "DABAKH-AD";
             document.getElementById("header-avatar").innerText = "AD";
-            if (adminPhone) adminPhone.classList.remove("hidden");
+            if (adminPhone) adminPhone.classList.add("hidden"); // Supprimé de la page admin (Cabinet Receiver)
             updatePhoneSimulatorHeader();
             refreshAdminSMSLogs();
             refreshAdminPortal();
@@ -1193,6 +1193,9 @@ function checkAuthState() {
         showPage('auth-page');
         if (adminPhone) adminPhone.classList.add("hidden");
     }
+
+    // Mise à jour dynamique des boutons WhatsApp
+    updateWhatsAppButtons();
 }
 
 function updatePhoneSimulatorHeader() {
@@ -2164,6 +2167,30 @@ function setupWhatsAppContact() {
             alert("Redirection vers WhatsApp pour envoyer votre message...");
             contactForm.reset();
         });
+    }
+}
+
+function updateWhatsAppButtons() {
+    const floatingBtn = document.getElementById("floating-whatsapp-btn");
+    const heroBtn = document.getElementById("hero-btn-whatsapp");
+    const defaultUrl = "https://wa.me/221772091725";
+
+    if (currentUser && !isAdminMode) {
+        // Patient connecté
+        const textContent = `Bonjour, je suis ${currentUser.name} et je viens de la plateforme Dabakh.`;
+        const url = `https://wa.me/221772091725?text=${encodeURIComponent(textContent)}`;
+        if (floatingBtn) floatingBtn.href = url;
+        if (heroBtn) heroBtn.href = url;
+        
+        // Remplir le nom dans le formulaire de contact public s'il est vide
+        const contactName = document.getElementById("contact-name");
+        if (contactName && !contactName.value) {
+            contactName.value = currentUser.name;
+        }
+    } else {
+        // Déconnecté ou Admin
+        if (floatingBtn) floatingBtn.href = defaultUrl;
+        if (heroBtn) heroBtn.href = defaultUrl;
     }
 }
 
