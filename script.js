@@ -3,10 +3,7 @@
    ========================================================================== */
 
 // ── SECURE ADMIN CREDENTIALS ──────────────────────────────────────────────
-const ADMIN_HASH = "QWRtaW4xOTc4Ok1hY29kb3UxOA=="; // ⚠️ Ne pas exposer les identifiants dans le code source
-function verifyAdmin(user, pass) {
-    return btoa(user + ":" + pass) === ADMIN_HASH;
-}
+// Les identifiants administrateur sont vérifiés uniquement via Supabase Auth
 
 // Hachage sécurisé SHA-256 pour les mots de passe patients
 async function hashPassword(password) {
@@ -961,13 +958,28 @@ function setupAuthHandlers() {
 
             const hashedPassword = await hashPassword(password);
 
+            let authUserId = null;
+            if (supabaseClient) {
+                const email = phoneRes.formatted.replace(/\s+/g, '') + '@dabakh.com';
+                const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password
+                });
+                if (authError) {
+                    alert("Erreur lors de la création du compte sécurisé : " + authError.message);
+                    return;
+                }
+                authUserId = authData.user?.id;
+            }
+
             const newPatientObj = {
+                id: authUserId,
                 name,
                 address,
                 phone: phoneRes.formatted,
                 password: hashedPassword,
                 registeredAt: new Date().toISOString(),
-                region: "Dakar"
+                region: "Thiès"
             };
 
             registeredPatients.push(newPatientObj);
@@ -996,13 +1008,13 @@ function setupAuthHandlers() {
             const pass = document.getElementById("login-password").value.trim();
 
             // 1. Admin login credentials via Supabase Auth
-            if (identifier === "Admin1978" || identifier.toLowerCase() === "admin") {
+            if (identifier.toLowerCase() === "admin" || identifier.toLowerCase() === "admin1978" || identifier.replace(/\s+/g, '') === "772091725" || identifier.replace(/\s+/g, '') === "+221772091725") {
                 if (!supabaseClient) {
                     alert("Erreur de connexion serveur Supabase.");
                     return;
                 }
                 const { data, error } = await supabaseClient.auth.signInWithPassword({
-                    email: 'admin@dabakh.com',
+                    email: 'contact@dabakh.com',
                     password: pass
                 });
 
@@ -1012,7 +1024,7 @@ function setupAuthHandlers() {
                 }
 
                 isAdminMode = true;
-                currentUser = { name: "Administrateur Cabinet", phone: "+221 77 209 17 25", address: "Dakar, Cabinet" };
+                currentUser = { name: "Administrateur Cabinet", phone: "+221 77 209 17 25", address: "Thiès, Cabinet" };
                 localStorage.setItem('daba_user', JSON.stringify(currentUser));
                 localStorage.setItem('daba_admin_mode', JSON.stringify(isAdminMode));
                 
@@ -1023,61 +1035,47 @@ function setupAuthHandlers() {
                 return;
             }
 
-            // 2. Patient Login Check — par téléphone OU par nom (local + Supabase fallback)
+            // 2. Patient Login Check — Sécurisé via Supabase Auth
             let patientMatch = null;
             const phoneRes = validateSenegalPhone(identifier);
 
-            if (phoneRes.isValid) {
-                // Recherche locale d'abord
-                patientMatch = registeredPatients.find(p => p.phone === phoneRes.formatted);
-                // Fallback Supabase si non trouvé (autre appareil)
-                if (!patientMatch && supabaseClient) {
-                    const { data: remoteP } = await supabaseClient
-                        .from('profiles').select('*').eq('phone', phoneRes.formatted).maybeSingle();
-                    if (remoteP) {
-                        patientMatch = {
-                            name: remoteP.name, phone: remoteP.phone, address: remoteP.address,
-                            password: remoteP.password_hash, registeredAt: remoteP.registered_at, region: remoteP.region
-                        };
-                        // Mettre à jour le cache local
-                        registeredPatients.push(patientMatch);
-                        localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
-                    }
+            if (!phoneRes.isValid) {
+                alert("Veuillez utiliser votre numéro de téléphone pour vous connecter (ex: 77 123 45 67).");
+                return;
+            }
+
+            if (supabaseClient) {
+                const email = phoneRes.formatted.replace(/\s+/g, '') + '@dabakh.com';
+                const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: pass
+                });
+                
+                if (authError) {
+                    alert("Identifiants incorrects. Veuillez vérifier votre numéro et mot de passe.");
+                    return;
                 }
-                if (!patientMatch) {
-                    alert("Aucun dossier patient trouvé pour ce numéro. Veuillez vous inscrire ou contacter le cabinet.");
+                
+                const { data: remoteP } = await supabaseClient
+                    .from('profiles').select('*').eq('id', authData.user.id).maybeSingle();
+                    
+                if (remoteP) {
+                    patientMatch = {
+                        id: remoteP.id, name: remoteP.name, phone: remoteP.phone, address: remoteP.address,
+                        password: remoteP.password_hash, registeredAt: remoteP.registered_at, region: remoteP.region
+                    };
+                    
+                    const existingIdx = registeredPatients.findIndex(p => p.phone === patientMatch.phone);
+                    if (existingIdx >= 0) registeredPatients[existingIdx] = patientMatch;
+                    else registeredPatients.push(patientMatch);
+                    localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
+                } else {
+                    alert("Profil introuvable en base de données.");
                     return;
                 }
             } else {
-                // Recherche par nom complet (insensible à la casse)
-                const identifierLower = identifier.toLowerCase().trim();
-                patientMatch = registeredPatients.find(p => p.name.toLowerCase().trim() === identifierLower);
-                // Fallback Supabase si non trouvé
-                if (!patientMatch && supabaseClient) {
-                    const { data: remoteP } = await supabaseClient
-                        .from('profiles').select('*').ilike('name', identifier.trim()).maybeSingle();
-                    if (remoteP) {
-                        patientMatch = {
-                            name: remoteP.name, phone: remoteP.phone, address: remoteP.address,
-                            password: remoteP.password_hash, registeredAt: remoteP.registered_at, region: remoteP.region
-                        };
-                        registeredPatients.push(patientMatch);
-                        localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
-                    }
-                }
-                if (!patientMatch) {
-                    alert("Aucun dossier patient trouvé pour ce nom. Vérifiez l'orthographe ou utilisez votre numéro de téléphone.");
-                    return;
-                }
-            }
-
-            // Si le patient a un mot de passe, vérifier le mot de passe (SHA-256 ou brut d'origine)
-            if (patientMatch.password) {
-                const hashedPass = await hashPassword(pass);
-                if (patientMatch.password !== hashedPass && patientMatch.password !== pass) {
-                    alert("Mot de passe incorrect. Veuillez vérifier vos identifiants.");
-                    return;
-                }
+                alert("Erreur de connexion serveur Supabase.");
+                return;
             }
 
             currentUser = patientMatch;
@@ -2382,12 +2380,12 @@ function getIntelligentBotReply(query) {
 function setupAdminPortalHandlers() {
     const adminAddPatientForm = document.getElementById("admin-add-patient-form");
     if (adminAddPatientForm) {
-        adminAddPatientForm.addEventListener("submit", (e) => {
+        adminAddPatientForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const name    = document.getElementById("admin-new-name").value.trim();
             const address = document.getElementById("admin-new-address").value.trim();
             const phone   = document.getElementById("admin-new-phone").value.trim();
-            const region  = document.getElementById("admin-new-region").value.trim() || "Dakar";
+            const region  = document.getElementById("admin-new-region").value.trim() || "Thiès";
             const password = document.getElementById("admin-new-password").value.trim();
 
             const phoneRes = validateSenegalPhone(phone);
@@ -2407,11 +2405,31 @@ function setupAdminPortalHandlers() {
                 return;
             }
 
+            let authUserId = null;
+            if (supabaseClient) {
+                const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+                });
+                const email = phoneRes.formatted.replace(/\s+/g, '') + '@dabakh.com';
+                const { data: authData, error: authError } = await tempClient.auth.signUp({
+                    email: email,
+                    password: password
+                });
+                if (authError) {
+                    alert("Erreur création compte Supabase: " + authError.message);
+                    return;
+                }
+                authUserId = authData.user?.id;
+            }
+
+            const hashedPassword = await hashPassword(password);
+
             const newPat = {
+                id: authUserId,
                 name,
                 address,
                 phone: phoneRes.formatted,
-                password,   // stored so patient can login with phone+password
+                password: hashedPassword,
                 region,
                 registeredAt: new Date().toISOString(),
                 addedByAdmin: true
@@ -2419,7 +2437,7 @@ function setupAdminPortalHandlers() {
 
             registeredPatients.push(newPat);
             localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
-            savePatientRemote(newPat);
+            await savePatientRemote(newPat);
 
             // SMS alert for admin panel
             triggerSmsAlert("NOUVEAU PATIENT AJOUTÉ",
@@ -2458,7 +2476,7 @@ function setupAdminPortalHandlers() {
 
             registeredPatients.forEach(p => {
                 const dateStr = new Date(p.registeredAt).toLocaleDateString('fr-FR');
-                csvContent += `"${p.name}","${p.phone}","${p.address}","${dateStr}","${p.region || 'Dakar'}"\n`;
+                csvContent += `"${p.name}","${p.phone}","${p.address}","${dateStr}","${p.region || 'Thiès'}"\n`;
             });
 
             const encodedUri = encodeURI(csvContent);
@@ -2474,11 +2492,30 @@ function setupAdminPortalHandlers() {
 
 function refreshAdminPortal() {
     const totalPatientsEl = document.getElementById("admin-total-patients");
+    const weeklyPatientsEl = document.getElementById("admin-weekly-patients");
     const totalAppointmentsEl = document.getElementById("admin-total-appointments");
+    const totalRevenueEl = document.getElementById("admin-total-revenue");
     const tbody = document.getElementById("admin-patients-table-body");
 
+    // Calculs existants
     if (totalPatientsEl) totalPatientsEl.innerText = registeredPatients.length;
     if (totalAppointmentsEl) totalAppointmentsEl.innerText = appointments.filter(a => a.status === "Confirmé").length;
+
+    // Calcul des nouveaux patients (7 derniers jours)
+    if (weeklyPatientsEl) {
+        const now = new Date();
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const newPatients = registeredPatients.filter(p => new Date(p.registeredAt) >= oneWeekAgo);
+        weeklyPatientsEl.innerText = newPatients.length;
+    }
+
+    // Calcul du Chiffre d'Affaires (CA) pour les RDV 'Présent'
+    if (totalRevenueEl) {
+        const ca = appointments
+            .filter(a => a.status === "Présent")
+            .reduce((sum, a) => sum + (parseInt(a.price) || 5000), 0);
+        totalRevenueEl.innerText = ca.toLocaleString('fr-FR') + " FCFA";
+    }
 
     renderAdminStats();
 
@@ -2496,7 +2533,7 @@ function refreshAdminPortal() {
                     <td class="text-accent">${p.phone}</td>
                     <td>${p.address}</td>
                     <td>${dateStr}</td>
-                    <td><span class="badge badge-secondary">${p.region || 'Dakar'}</span></td>
+                    <td><span class="badge badge-secondary">${p.region || 'Thiès'}</span></td>
                     <td>
                         <button class="btn btn-secondary btn-sm" onclick="openPrescriptionModal('${p.phone.replace(/\s+/g, '')}', '${p.name.replace(/'/g, "\\'")}')" title="Uploader une ordonnance">
                             <i data-lucide="file-plus"></i> + Ordonnance
@@ -2516,8 +2553,8 @@ function refreshAdminPortal() {
             tbodyApt.innerHTML = activeApts.map(a => {
                 const dateStr = new Date(a.date).toLocaleDateString('fr-FR');
                 let badgeClass = "badge-warning";
-                if (a.status === "Confirmé") badgeClass = "badge-success";
-                if (a.status === "Refusé" || a.status === "Annulé") badgeClass = "badge-danger";
+                if (a.status === "Confirmé" || a.status === "Présent") badgeClass = "badge-success";
+                if (a.status === "Refusé" || a.status === "Annulé" || a.status === "Absent") badgeClass = "badge-danger";
 
                 return `
                     <tr>
@@ -2533,7 +2570,15 @@ function refreshAdminPortal() {
                                     <i data-lucide="check"></i>
                                 </button>
                                 ` : ''}
-                                ${a.status !== "Refusé" && a.status !== "Annulé" ? `
+                                ${a.status === "Confirmé" ? `
+                                <button class="btn btn-success btn-sm" onclick="adminMarkPresent('${a.id}')" title="Présent">
+                                    <i data-lucide="user-check"></i>
+                                </button>
+                                <button class="btn btn-warning btn-sm" onclick="adminMarkAbsent('${a.id}')" title="Absent">
+                                    <i data-lucide="user-x"></i>
+                                </button>
+                                ` : ''}
+                                ${a.status !== "Refusé" && a.status !== "Annulé" && a.status !== "Présent" && a.status !== "Absent" ? `
                                 <button class="btn btn-danger btn-sm" onclick="adminRefuseAppointment('${a.id}')" title="Refuser">
                                     <i data-lucide="x"></i>
                                 </button>
@@ -2642,6 +2687,32 @@ async function adminConfirmAppointment(aptId) {
         
         alert("Rendez-vous confirmé avec succès !");
         refreshAdminPortal();
+    }
+}
+
+async function adminMarkPresent(aptId) {
+    const aptIndex = appointments.findIndex(a => a.id === aptId);
+    if (aptIndex !== -1) {
+        if (confirm("Confirmez-vous la présence de ce patient ?")) {
+            appointments[aptIndex].status = "Présent";
+            localStorage.setItem('daba_appointments', JSON.stringify(appointments));
+            if (typeof saveAppointmentRemote === "function") await saveAppointmentRemote(appointments[aptIndex]);
+            alert("Présence confirmée avec succès !");
+            refreshAdminPortal();
+        }
+    }
+}
+
+async function adminMarkAbsent(aptId) {
+    const aptIndex = appointments.findIndex(a => a.id === aptId);
+    if (aptIndex !== -1) {
+        if (confirm("Confirmez-vous l'absence de ce patient ?")) {
+            appointments[aptIndex].status = "Absent";
+            localStorage.setItem('daba_appointments', JSON.stringify(appointments));
+            if (typeof saveAppointmentRemote === "function") await saveAppointmentRemote(appointments[aptIndex]);
+            alert("Absence confirmée avec succès !");
+            refreshAdminPortal();
+        }
     }
 }
 
@@ -2872,7 +2943,7 @@ function renderAdminStats() {
     // 2. Calcul et rendu de la répartition géographique des patients par région
     const regionCounts = {};
     registeredPatients.forEach(p => {
-        const reg = p.region || "Dakar";
+        const reg = p.region || "Thiès";
         regionCounts[reg] = (regionCounts[reg] || 0) + 1;
     });
 
@@ -2973,7 +3044,7 @@ function renderProfilesTable(filterData) {
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.58 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                 ${p.phone || '—'}</a></td>
             <td>${address}</td>
-            <td><span class="region-badge">📍 ${p.region || 'Non renseignée'}</span></td>
+            <td><span class="region-badge">📍 ${p.region || 'Thiès'}</span></td>
             <td><span class="profile-date">${dateStr}</span></td>
             <td><span class="status-badge-active">Actif</span></td>
             <td>

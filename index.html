@@ -413,7 +413,7 @@
                         </div>
                         <div class="form-group">
                             <label for="register-address">Adresse (Sénégal)</label>
-                            <input type="text" id="register-address" required placeholder="Ex: Point E, Rue 4, Dakar">
+                            <input type="text" id="register-address" required placeholder="Ex: Mbour 1, Thiès">
                         </div>
                         <div class="form-group">
                             <label for="register-phone">Numéro Téléphone Sénégalais (Wave/Orange Money)</label>
@@ -464,7 +464,7 @@
                     <div class="user-details">
                         <h4 id="user-display-name">Patient</h4>
                         <span class="badge badge-success-outline" id="user-phone-badge">+221 77 000 00 00</span>
-                        <span class="badge badge-secondary mt-05" id="user-address-badge">Dakar, Sénégal</span>
+                        <span class="badge badge-secondary mt-05" id="user-address-badge">Thiès, Sénégal</span>
                     </div>
                 </div>
 
@@ -935,28 +935,44 @@
 
                     <!-- ================= TAB: ADMIN PORTAL OVERVIEW ================= -->
                     <div id="tab-admin-overview" class="tab-panel">
-                        <div class="grid grid-3 gap-15">
+                        <div class="grid grid-4 gap-15 mb-15">
                             <div class="metric-card bg-glass">
                                 <div class="flex justify-between align-center">
-                                    <span class="metric-label">Total Patients Inscrits</span>
+                                    <span class="metric-label">Patients Inscrits</span>
                                     <i data-lucide="users" class="text-accent"></i>
                                 </div>
                                 <h3 class="metric-value text-accent" id="admin-total-patients">0</h3>
-                                <span class="metric-desc">Enregistrés dans la base Cabinet</span>
+                                <span class="metric-desc">Total en base</span>
                             </div>
                             <div class="metric-card bg-glass">
                                 <div class="flex justify-between align-center">
-                                    <span class="metric-label">Rendez-vous Actifs</span>
+                                    <span class="metric-label">Nouveaux (7j)</span>
+                                    <i data-lucide="user-plus" class="text-primary"></i>
+                                </div>
+                                <h3 class="metric-value text-primary" id="admin-weekly-patients">0</h3>
+                                <span class="metric-desc">Inscrits cette semaine</span>
+                            </div>
+                            <div class="metric-card bg-glass">
+                                <div class="flex justify-between align-center">
+                                    <span class="metric-label">RDV Actifs</span>
                                     <i data-lucide="calendar" class="text-success"></i>
                                 </div>
                                 <h3 class="metric-value text-success" id="admin-total-appointments">0</h3>
-                                <span class="metric-desc">Séances planifiées</span>
+                                <span class="metric-desc">Séances à venir</span>
                             </div>
-                            <div class="metric-card bg-glass flex align-center justify-center">
-                                <button class="btn btn-primary w-full" id="btn-export-patients">
-                                    <i data-lucide="download"></i> Exporter la Liste (CSV)
-                                </button>
+                            <div class="metric-card bg-glass">
+                                <div class="flex justify-between align-center">
+                                    <span class="metric-label">CA Présents</span>
+                                    <i data-lucide="banknote" class="text-warning"></i>
+                                </div>
+                                <h3 class="metric-value text-warning" id="admin-total-revenue">0</h3>
+                                <span class="metric-desc">Généré en FCFA</span>
                             </div>
+                        </div>
+                        <div class="flex justify-end mb-2">
+                            <button class="btn btn-primary" id="btn-export-patients">
+                                <i data-lucide="download"></i> Exporter la Liste (CSV)
+                            </button>
                         </div>
 
                         <!-- Patients List Table -->
@@ -1076,8 +1092,8 @@
                                                     <i data-lucide="map" class="inline-icon"></i> Région
                                                 </label>
                                                 <select id="admin-new-region" class="w-full form-select-custom">
-                                                    <option value="Dakar">Dakar</option>
                                                     <option value="Thiès">Thiès</option>
+                                                    <option value="Dakar">Dakar</option>
                                                     <option value="Saint-Louis">Saint-Louis</option>
                                                     <option value="Ziguinchor">Ziguinchor</option>
                                                     <option value="Kaolack">Kaolack</option>
@@ -1095,7 +1111,7 @@
                                                 <span class="required-star">*</span>
                                             </label>
                                             <input type="text" id="admin-new-address" required
-                                                placeholder="Ex: Mermoz, Rue G, Dakar">
+                                                placeholder="Ex: Mbour 1, Thiès">
                                         </div>
 
                                         <!-- Phone -->
@@ -1228,8 +1244,8 @@
                             <div class="profiles-filters">
                                 <select id="profiles-region-filter" class="form-select-custom" onchange="filterProfilesTable()">
                                     <option value="">Toutes les régions</option>
-                                    <option value="Dakar">Dakar</option>
                                     <option value="Thiès">Thiès</option>
+                                    <option value="Dakar">Dakar</option>
                                     <option value="Saint-Louis">Saint-Louis</option>
                                     <option value="Ziguinchor">Ziguinchor</option>
                                     <option value="Kaolack">Kaolack</option>
