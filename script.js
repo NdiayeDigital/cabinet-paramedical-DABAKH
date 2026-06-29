@@ -1439,7 +1439,26 @@ function setupBookingCalendar() {
     dateInput.max = maxStr;
     dateInput.value = minStr;
 
-    dateInput.addEventListener("change", () => renderTimeSlots());
+    dateInput.addEventListener("change", (e) => {
+        const d = new Date(e.target.value);
+        if (d.getDay() === 0) {
+            alert("Le cabinet est fermé le dimanche. Veuillez choisir une autre date.");
+            e.target.value = "";
+            const container = document.getElementById("time-slots-container");
+            if(container) container.innerHTML = "";
+            return;
+        }
+        renderTimeSlots();
+    });
+    
+    // Check initial min date
+    let minD = new Date(minStr);
+    if (minD.getDay() === 0) {
+        minD.setDate(minD.getDate() + 1);
+        minStr = minD.toISOString().split('T')[0];
+        dateInput.min = minStr;
+        dateInput.value = minStr;
+    }
 
     const serviceSelect = document.getElementById("book-service");
     if (serviceSelect) {
@@ -2571,21 +2590,52 @@ function refreshAdminPortal() {
                                 </button>
                                 ` : ''}
                                 ${a.status === "Confirmé" ? `
-                                <button class="btn btn-success btn-sm" onclick="adminMarkPresent('${a.id}')" title="Présent">
-                                    <i data-lucide="user-check"></i>
-                                </button>
-                                <button class="btn btn-warning btn-sm" onclick="adminMarkAbsent('${a.id}')" title="Absent">
-                                    <i data-lucide="user-x"></i>
-                                </button>
+                                    ${(function(){
+                                        let isPast = false;
+                                        if (a.date) {
+                                            const aptDate = new Date(a.date);
+                                            if (a.time) {
+                                                const [hh, mm] = a.time.split(':');
+                                                if (hh && mm) aptDate.setHours(parseInt(hh, 10), parseInt(mm, 10));
+                                            }
+                                            if (aptDate < new Date()) isPast = true;
+                                        }
+                                        const phoneWa = (a.patientPhone || '').replace(/\s+/g, '').replace('+', '');
+                                        const waText = encodeURIComponent("Bonjour " + (a.patientName||"") + ", le Cabinet DABAKH vous rappelle votre séance de rééducation prévue le " + new Date(a.date).toLocaleDateString('fr-FR') + " à " + a.time + ". En cas d'empêchement, merci de nous prévenir.");
+                                        const waUrl = "https://wa.me/" + phoneWa + "?text=" + waText;
+                                        
+                                        if (isPast) {
+                                            return `
+                                                <button class="btn btn-success btn-sm" onclick="adminMarkPresent('${a.id}')" title="Présent">
+                                                    <i data-lucide="user-check"></i>
+                                                </button>
+                                                <button class="btn btn-warning btn-sm" onclick="adminMarkAbsent('${a.id}')" title="Absent">
+                                                    <i data-lucide="user-x"></i>
+                                                </button>
+                                            `;
+                                        } else {
+                                            return `
+                                                <a href="${waUrl}" target="_blank" class="btn btn-whatsapp btn-sm" title="Rappel WhatsApp">
+                                                    <i data-lucide="message-circle"></i> Rappel
+                                                </a>
+                                                <button class="btn btn-secondary btn-sm" onclick="adminEditAppointmentPrompt('${a.id}')" title="Reprogrammer / Modifier">
+                                                    <i data-lucide="edit"></i>
+                                                </button>
+                                                <button class="btn btn-danger btn-sm" onclick="adminCancelAppointment('${a.id}')" title="Annuler">
+                                                    <i data-lucide="x"></i>
+                                                </button>
+                                            `;
+                                        }
+                                    })()}
                                 ` : ''}
-                                ${a.status !== "Refusé" && a.status !== "Annulé" && a.status !== "Présent" && a.status !== "Absent" ? `
+                                ${a.status !== "Confirmé" && a.status !== "Refusé" && a.status !== "Annulé" && a.status !== "Présent" && a.status !== "Absent" ? `
                                 <button class="btn btn-danger btn-sm" onclick="adminRefuseAppointment('${a.id}')" title="Refuser">
                                     <i data-lucide="x"></i>
                                 </button>
-                                ` : ''}
                                 <button class="btn btn-secondary btn-sm" onclick="adminEditAppointmentPrompt('${a.id}')" title="Reprogrammer / Modifier">
                                     <i data-lucide="edit"></i>
                                 </button>
+                                ` : ''}
                             </div>
                         </td>
                     </tr>
@@ -3129,4 +3179,50 @@ function exportProfilesCSV() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showNotificationBanner('📥 Export CSV de ' + data.length + ' profil(s) lancé !');
+}
+
+// ── EXTENDED PATIENT FILE: ADMIN NOTES ──────────────────────────────────
+function openAdminNotes(phoneFormatted) {
+    const p = registeredPatients.find(x => x.phone.replace(/\s+/g, '') === phoneFormatted);
+    if (!p) return;
+    
+    document.getElementById("admin-notes-patient-name").value = p.name;
+    document.getElementById("admin-notes-patient-phone").value = p.phone;
+    document.getElementById("admin-notes-content").value = p.adminNotes || p.admin_notes || "";
+    
+    document.getElementById("modal-admin-notes").classList.remove("hidden");
+}
+
+function closeAdminNotesModal() {
+    document.getElementById("modal-admin-notes").classList.add("hidden");
+}
+
+async function saveAdminNotes() {
+    const phone = document.getElementById("admin-notes-patient-phone").value;
+    const notes = document.getElementById("admin-notes-content").value;
+    
+    const pIndex = registeredPatients.findIndex(x => x.phone === phone);
+    if (pIndex !== -1) {
+        registeredPatients[pIndex].adminNotes = notes;
+        registeredPatients[pIndex].admin_notes = notes; // for supabase
+        localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
+        
+        // Save to Supabase if available
+        if (supabaseClient) {
+            const btn = document.querySelector("#modal-admin-notes .btn-primary");
+            btn.innerHTML = "Sauvegarde...";
+            btn.disabled = true;
+            try {
+                const { error } = await supabaseClient.from('profiles').update({ admin_notes: notes }).eq('phone', phone);
+                if (error) console.error("Erreur sauvegarde notes:", error);
+            } catch (e) {
+                console.error("Erreur notes", e);
+            }
+            btn.innerHTML = '<i data-lucide="save"></i> Enregistrer';
+            btn.disabled = false;
+        }
+        
+        alert("Fiche clinique mise à jour.");
+        closeAdminNotesModal();
+    }
 }

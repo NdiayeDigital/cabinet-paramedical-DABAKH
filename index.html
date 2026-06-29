@@ -1482,6 +1482,33 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Custom Script -->
     <script src="script.js"></script>
+
+    <!-- Admin Notes Modal -->
+    <div id="modal-admin-notes" class="modal-overlay hidden">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3><i data-lucide="file-text" class="inline-icon text-accent"></i> Fiche Clinique (Privé)</h3>
+                <button class="modal-close-btn" onclick="closeAdminNotesModal()"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-sm text-muted mb-1">Notes de consultation, évolution de la rééducation, anamnèse. Ces informations sont <strong class="text-warning">invisibles pour le patient</strong>.</p>
+                <div class="form-group">
+                    <label>Patient</label>
+                    <input type="text" id="admin-notes-patient-name" class="w-full" disabled style="background: rgba(255,255,255,0.05);">
+                    <input type="hidden" id="admin-notes-patient-phone">
+                </div>
+                <div class="form-group">
+                    <label>Observations cliniques</label>
+                    <textarea id="admin-notes-content" class="w-full" rows="8" placeholder="Écrivez vos notes ici..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAdminNotesModal()">Fermer</button>
+                <button class="btn btn-primary" onclick="saveAdminNotes()"><i data-lucide="save"></i> Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>
