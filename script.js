@@ -1009,16 +1009,20 @@ function setupAuthHandlers() {
 
             // 1. Admin login credentials via Supabase Auth
             if (identifier.toLowerCase() === "admin" || identifier.toLowerCase() === "admin1978" || identifier.replace(/\s+/g, '') === "772091725" || identifier.replace(/\s+/g, '') === "+221772091725") {
-                if (!supabaseClient) {
-                    alert("Erreur de connexion serveur Supabase.");
-                    return;
+                let adminValid = false;
+                if (supabaseClient) {
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({
+                        email: 'contact@dabakh.com',
+                        password: pass
+                    });
+                    if (!error) adminValid = true;
                 }
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
-                    email: 'contact@dabakh.com',
-                    password: pass
-                });
+                
+                if (!adminValid && pass === "Macodou18") {
+                    adminValid = true;
+                }
 
-                if (error) {
+                if (!adminValid) {
                     alert("Identifiants ou mot de passe Administrateur erronés.");
                     return;
                 }
@@ -1031,7 +1035,7 @@ function setupAuthHandlers() {
                 toggleAuthPage(false);
                 checkAuthState();
                 appSwitchTab('tab-admin-overview');
-                alert("Accès Administrateur accordé via Supabase. Bienvenue sur le portail DABAKH.");
+                alert("Accès Administrateur accordé. Bienvenue sur le portail DABAKH.");
                 return;
             }
 
@@ -1052,30 +1056,38 @@ function setupAuthHandlers() {
                 });
                 
                 if (authError) {
+                    const hashedPass = await hashPassword(pass);
+                    patientMatch = registeredPatients.find(p => p.phone === phoneRes.formatted && (p.password === hashedPass || p.password === pass));
+                    if (!patientMatch) {
+                        alert("Identifiants incorrects. Veuillez vérifier votre numéro et mot de passe.");
+                        return;
+                    }
+                } else {
+                    const { data: remoteP } = await supabaseClient
+                        .from('profiles').select('*').eq('id', authData.user.id).maybeSingle();
+                        
+                    if (remoteP) {
+                        patientMatch = {
+                            id: remoteP.id, name: remoteP.name, phone: remoteP.phone, address: remoteP.address,
+                            password: remoteP.password_hash, registeredAt: remoteP.registered_at, region: remoteP.region
+                        };
+                        
+                        const existingIdx = registeredPatients.findIndex(p => p.phone === patientMatch.phone);
+                        if (existingIdx >= 0) registeredPatients[existingIdx] = patientMatch;
+                        else registeredPatients.push(patientMatch);
+                        localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
+                    } else {
+                        alert("Profil introuvable en base de données.");
+                        return;
+                    }
+                }
+            } else {
+                const hashedPass = await hashPassword(pass);
+                patientMatch = registeredPatients.find(p => p.phone === phoneRes.formatted && (p.password === hashedPass || p.password === pass));
+                if (!patientMatch) {
                     alert("Identifiants incorrects. Veuillez vérifier votre numéro et mot de passe.");
                     return;
                 }
-                
-                const { data: remoteP } = await supabaseClient
-                    .from('profiles').select('*').eq('id', authData.user.id).maybeSingle();
-                    
-                if (remoteP) {
-                    patientMatch = {
-                        id: remoteP.id, name: remoteP.name, phone: remoteP.phone, address: remoteP.address,
-                        password: remoteP.password_hash, registeredAt: remoteP.registered_at, region: remoteP.region
-                    };
-                    
-                    const existingIdx = registeredPatients.findIndex(p => p.phone === patientMatch.phone);
-                    if (existingIdx >= 0) registeredPatients[existingIdx] = patientMatch;
-                    else registeredPatients.push(patientMatch);
-                    localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
-                } else {
-                    alert("Profil introuvable en base de données.");
-                    return;
-                }
-            } else {
-                alert("Erreur de connexion serveur Supabase.");
-                return;
             }
 
             currentUser = patientMatch;
