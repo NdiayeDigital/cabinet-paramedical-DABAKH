@@ -2179,7 +2179,10 @@ function updateWhatsAppButtons() {
         // Patient connecté
         const textContent = `Bonjour, je suis ${currentUser.name} et je viens de la plateforme Dabakh.`;
         const url = `https://wa.me/221772091725?text=${encodeURIComponent(textContent)}`;
-        if (floatingBtn) floatingBtn.href = url;
+        if (floatingBtn) {
+            floatingBtn.href = url;
+            floatingBtn.classList.remove("hidden");
+        }
         if (heroBtn) heroBtn.href = url;
         
         // Remplir le nom dans le formulaire de contact public s'il est vide
@@ -2187,9 +2190,17 @@ function updateWhatsAppButtons() {
         if (contactName && !contactName.value) {
             contactName.value = currentUser.name;
         }
+    } else if (currentUser && isAdminMode) {
+        // Connecté en tant qu'administrateur
+        if (floatingBtn) {
+            floatingBtn.classList.add("hidden"); // Retirer/Masquer le bouton WhatsApp dans la partie admin
+        }
     } else {
-        // Déconnecté ou Admin
-        if (floatingBtn) floatingBtn.href = defaultUrl;
+        // Déconnecté (sur le site public)
+        if (floatingBtn) {
+            floatingBtn.href = defaultUrl;
+            floatingBtn.classList.remove("hidden");
+        }
         if (heroBtn) heroBtn.href = defaultUrl;
     }
 }
