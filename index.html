@@ -86,6 +86,7 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Custom Style Sheet -->
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -129,9 +130,7 @@
         <!-- Navigation Header -->
         <header class="main-header">
             <div class="container header-container">
-                <div class="logo">
-                    <img src="images/logo-dabakh.png" alt="Cabinet Paramédical DABAKH" class="logo-img-header">
-                </div>
+                
                 <nav class="nav-menu">
                     <a href="#accueil">Accueil</a>
                     <a href="#services">Spécialités & Tarifs</a>
@@ -482,10 +481,7 @@
                     <a href="#" class="menu-item" data-tab="tab-history">
                         <i data-lucide="history"></i> <span>Historique des Soins</span>
                     </a>
-                    <a href="#" class="menu-item" data-tab="tab-chatbot">
-                        <i data-lucide="bot" class="text-accent"></i> <strong class="text-accent">Copilote Santé
-                            Dabakh</strong>
-                    </a>
+                    
                     <div class="menu-divider"></div>
                     <a href="#" class="menu-item" id="btn-change-patient">
                         <i data-lucide="users"></i> <span>Changer de Patient</span>
@@ -551,7 +547,7 @@
                     <!-- ================= TAB: OVERVIEW ================= -->
                     <div id="tab-overview" class="tab-panel active">
                         <!-- Stat Graph Widgets in Dashboard -->
-                        <div class="grid grid-3 gap-15">
+                        <div class="grid grid-4 gap-15">
                             <div class="metric-card bg-glass">
                                 <div class="flex justify-between align-center">
                                     <span class="metric-label">Prochaine Séance</span>
@@ -1509,6 +1505,18 @@
         </div>
     </div>
 
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(reg => {
+            console.log('ServiceWorker registration successful');
+          }).catch(err => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
 </body>
 
 </html>

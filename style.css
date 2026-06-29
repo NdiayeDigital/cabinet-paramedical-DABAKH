@@ -1367,7 +1367,7 @@ img {
    ========================================================================== */
 #app-dashboard {
     min-height: 100vh;
-    background-color: #02050b;
+    background-color: #f4f7f6;
 }
 .app-layout {
     display: flex;
@@ -1377,7 +1377,7 @@ img {
 /* Sidebar Dashboard */
 .app-sidebar {
     width: 280px;
-    background: #030712;
+    background: #ffffff;
     border-right: 1px solid var(--color-border);
     display: flex;
     flex-direction: column;
@@ -1473,7 +1473,7 @@ img {
     min-width: 0;
 }
 .app-header {
-    background: rgba(3, 7, 18, 0.5);
+    background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--color-border);
@@ -1489,7 +1489,7 @@ img {
     font-size: 1.25rem;
 }
 .app-header-logo {
-    display: none;
+    display: block;
 }
 .page-title {
     font-family: 'Outfit', sans-serif;
