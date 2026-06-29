@@ -2156,7 +2156,15 @@ html, body {
     .app-header-logo { display: block; }
     .app-header { padding: 14px 18px; }
     .app-content-container { padding: 16px; }
-    .metric-value { font-size: 1.3rem; }
+    .metric-value { 
+        font-size: 1.3rem; 
+        white-space: normal; 
+        word-break: break-word; 
+    }
+    .menu-item {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
     .page-title { 
         font-size: 0.95rem; 
         max-width: 100px;
