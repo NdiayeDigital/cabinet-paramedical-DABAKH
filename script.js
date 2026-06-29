@@ -2254,14 +2254,8 @@ function refreshAdminSMSLogs() {
     if (!smsContainer) return;
 
     const phoneNum = currentUser && !isAdminMode ? currentUser.phone : "77 209 17 25";
-    const systemMsg = `
-        <div class="sms-system-message">
-            <p>📟 Terminal SMS activé. Les notifications du cabinet pour le numéro <strong>${phoneNum}</strong> s'afficheront ici en temps réel pour démonstration.</p>
-        </div>
-    `;
-
     if (smsNotifications.length === 0) {
-        smsContainer.innerHTML = systemMsg;
+        smsContainer.innerHTML = '';
         return;
     }
 
@@ -2293,19 +2287,12 @@ function refreshAdminSMSLogs() {
             `;
         }).join('');
 
-    smsContainer.innerHTML = systemMsg + messagesHtml;
+    smsContainer.innerHTML = messagesHtml;
     smsContainer.scrollTop = smsContainer.scrollHeight;
 }
 
 function triggerTopScreenBanner(title, message) {
-    const banner = document.getElementById("top-notification");
-    const textEl = document.getElementById("notif-text");
-    if (!banner || !textEl) return;
-
-    textEl.innerText = `💡 ${title} : SMS reçu à la réception !`;
-    banner.classList.remove("hidden");
-
-    setTimeout(() => closeTopNotification(), 5000);
+    // Disabled as requested (supprimer les notifications bleues)
 }
 
 function closeTopNotification() {
