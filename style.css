@@ -2140,37 +2140,123 @@ html, body {
     .footer-links { justify-content: center; flex-wrap: wrap; gap: 24px; }
     .footer-brand { max-width: 100%; }
 
-    /* Dashboard */
+    /* Dashboard (Optimisé Mobile Smartphone) */
     .app-sidebar {
         position: fixed;
         top: 0; bottom: 0;
         left: -100%;
         width: min(280px, 80vw);
-        z-index: 1000;
+        z-index: 1001;
         box-shadow: 10px 0 40px rgba(0,0,0,0.6);
         transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .app-sidebar.open { left: 0; }
     .sidebar-close-btn { display: block; }
-    .sidebar-open-btn { display: block; }
-    .app-header-logo { display: block; }
-    .app-header { padding: 14px 18px; }
-    .app-content-container { padding: 16px; }
-    .metric-value { 
-        font-size: 1.3rem; 
-        white-space: normal; 
-        word-break: break-word; 
+    .sidebar-open-btn { 
+        display: block; 
+        background: none; 
+        border: none; 
+        color: var(--color-text-white); 
+        cursor: pointer; 
+        padding: 4px;
+        margin-right: 8px;
     }
-    .menu-item {
-        padding: 10px 12px;
+    .app-header-logo { display: none !important; } /* Masqué pour laisser de la place au titre et infos patient */
+    .app-header { 
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--color-border);
+        padding: 10px 16px; 
+        height: 60px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-sizing: border-box;
+    }
+    .app-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .header-metric {
+        background: rgba(14, 165, 233, 0.08) !important;
+        padding: 6px 10px !important;
+        border-radius: 10px !important;
+        border: 1px solid rgba(14, 165, 233, 0.15) !important;
+    }
+    #header-patient-id-label {
+        display: none !important; /* Masquer le label fixe pour gagner de la place */
+    }
+    #header-patient-id {
+        font-size: 0.82rem !important;
+        font-weight: 700 !important;
+    }
+    .user-profile-menu .user-avatar-circle {
+        width: 36px;
+        height: 36px;
         font-size: 0.9rem;
     }
     .page-title { 
-        font-size: 0.95rem; 
-        max-width: 100px;
+        font-size: 1.1rem; 
+        max-width: 130px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+    .app-content-container { 
+        padding: 16px 16px 100px 16px !important; /* Marges horizontales uniformes de 16px, marge basse pour les boutons fixes */
+        box-sizing: border-box;
+    }
+    
+    /* Layout en colonne unique et cartes 100% de large */
+    .app-content-container .grid-4,
+    .app-content-container .grid-2 {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important; /* Espacement régulier et uniforme */
+        width: 100% !important;
+    }
+    
+    /* Style et hauteur des cartes */
+    .metric-card, .card {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding: 22px 18px !important; /* Marges internes généreuses */
+        border-radius: 20px !important; /* Coins très arrondis */
+        box-shadow: 0 8px 24px rgba(0,0,0,0.04) !important; /* Ombres douces */
+        min-height: 120px;
+    }
+    .metric-value { 
+        font-size: 1.4rem; 
+        font-weight: 800;
+        white-space: normal; 
+        word-break: break-word; 
+        margin-top: 8px;
+    }
+    .metric-desc {
+        font-size: 0.85rem;
+        margin-top: 6px;
+    }
+    .menu-item {
+        padding: 12px 16px;
+        font-size: 0.95rem;
+        min-height: 48px; /* Tapping ergonomique au doigt */
+    }
+
+    /* Boutons d'action pleine largeur */
+    .card-body .btn {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        justify-content: center !important;
+        min-height: 48px !important;
+        font-size: 0.95rem !important;
+        border-radius: 12px !important;
+        padding: 12px 20px !important;
     }
 
     /* Booking */
@@ -2184,10 +2270,40 @@ html, body {
         width: auto;
     }
 
-    /* Admin phone */
-    .admin-phone-wrapper { bottom: 14px; right: 14px; }
-    .phone-toggle-btn { padding: 10px 14px; font-size: 0.82rem; gap: 7px; }
-    .phone-toggle-btn svg { width: 17px; height: 17px; }
+    /* Admin/Patient phone simulator (bouton d'action pleine largeur) */
+    .admin-phone-wrapper { 
+        position: fixed !important;
+        bottom: calc(96px + env(safe-area-inset-bottom)) !important; /* Positionné juste au-dessus du bouton flottant WhatsApp */
+        left: 16px !important; 
+        right: 16px !important; 
+        width: calc(100% - 32px) !important;
+        z-index: 999 !important;
+    }
+    .phone-toggle-btn { 
+        width: 100% !important;
+        box-sizing: border-box !important;
+        justify-content: center !important;
+        padding: 14px 20px !important; 
+        font-size: 0.95rem !important; 
+        border-radius: 14px !important;
+        gap: 8px; 
+        min-height: 48px;
+    }
+    .phone-toggle-btn svg { width: 18px; height: 18px; }
+    
+    /* Mockup smartphone responsive */
+    .smartphone {
+        position: fixed;
+        top: 20px;
+        bottom: 80px;
+        left: 16px;
+        right: 16px;
+        width: auto !important;
+        max-width: none !important;
+        height: auto !important;
+        transform: none !important;
+        z-index: 1002;
+    }
 
     /* Notification banner */
     .notification-banner {
@@ -2308,8 +2424,8 @@ html, body {
     .btn { padding: 10px 18px; font-size: 0.85rem; }
     .btn-lg { padding: 13px 20px; font-size: 0.9rem; }
 
-    .admin-phone-wrapper { bottom: 10px; right: 10px; }
-    .phone-toggle-btn { padding: 8px 12px; font-size: 0.78rem; }
+    .admin-phone-wrapper { bottom: 90px; left: 12px; right: 12px; width: calc(100% - 24px) !important; }
+    .phone-toggle-btn { padding: 12px 16px; font-size: 0.85rem; width: 100% !important; justify-content: center; }
 
     /* Ensure nothing overflows on tiny screens */
     * { word-break: break-word; }
