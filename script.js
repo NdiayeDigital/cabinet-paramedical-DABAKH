@@ -855,6 +855,7 @@ function appSwitchTab(tabId) {
         'tab-chatbot': 'Copilote Santé Dabakh',
         'tab-admin-overview': 'Patients Inscrits',
         'tab-admin-add-patient': 'Ajouter un Patient',
+        'tab-waiting-room': 'Salle d\'Attente',
         'tab-admin-stats': 'Statistiques',
         'tab-admin-profiles': 'Profils Utilisateurs'
     };
