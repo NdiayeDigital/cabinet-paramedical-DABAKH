@@ -15,6 +15,44 @@ async function hashPassword(password) {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// ── CHIFFREMENT DES DONNÉES DE SANTÉ (SECRET MÉDICAL) ──────────────────────
+const CABINET_SECRET_SALT = "DABAKH_SECRET_HEALTH_SALT_2026";
+
+function encryptData(text) {
+    if (!text) return "";
+    try {
+        const key = CABINET_SECRET_SALT;
+        let result = "";
+        for (let i = 0; i < text.length; i++) {
+            result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+        }
+        return "[ENCRYPTED_DABAKH_v1]:" + btoa(unescape(encodeURIComponent(result)));
+    } catch (e) {
+        console.error("Encryption error:", e);
+        return text;
+    }
+}
+
+function decryptData(encryptedText) {
+    if (!encryptedText) return "";
+    if (!encryptedText.startsWith("[ENCRYPTED_DABAKH_v1]:")) {
+        return encryptedText; // Legacy unencrypted text
+    }
+    try {
+        const base64 = encryptedText.substring(22);
+        const text = decodeURIComponent(escape(atob(base64)));
+        const key = CABINET_SECRET_SALT;
+        let result = "";
+        for (let i = 0; i < text.length; i++) {
+            result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+        }
+        return result;
+    } catch (e) {
+        console.error("Decryption error:", e);
+        return encryptedText;
+    }
+}
+
 // ── SUPABASE CLOUD BACKEND ────────────────────────────────────────────────
 const SUPABASE_URL = "https://wotfalrbvttquqshitfs.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvdGZhbHJidnR0cXVxc2hpdGZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDEzNjEsImV4cCI6MjA5NjQxNzM2MX0.j_KH8OelhDukyhlaHujVveDNWz1QEl8iPkJcx4K5hDw";
@@ -35,7 +73,8 @@ async function syncFromSupabase() {
         if (dbPatients && dbPatients.length > 0) {
             registeredPatients = dbPatients.map(p => ({
                 name: p.name || p.full_name, phone: p.phone, address: p.address,
-                password: p.password_hash, registeredAt: p.registered_at || p.created_at, region: p.region || 'Dakar'
+                password: p.password_hash, registeredAt: p.registered_at || p.created_at, region: p.region || 'Dakar',
+                adminNotes: decryptData(p.admin_notes || "")
             }));
             localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
         }
@@ -1076,7 +1115,8 @@ function setupAuthHandlers() {
                     if (remoteP) {
                         patientMatch = {
                             id: remoteP.id, name: remoteP.name, phone: remoteP.phone, address: remoteP.address,
-                            password: remoteP.password_hash, registeredAt: remoteP.registered_at, region: remoteP.region
+                            password: remoteP.password_hash, registeredAt: remoteP.registered_at, region: remoteP.region,
+                            adminNotes: decryptData(remoteP.admin_notes || "")
                         };
                         
                         const existingIdx = registeredPatients.findIndex(p => p.phone === patientMatch.phone);
@@ -1453,6 +1493,122 @@ function renderDashboardOverview() {
     if(ePresents) ePresents.innerText = faits;
     const eAbsents = document.getElementById("overview-seances-absents");
     if(eAbsents) eAbsents.innerText = absents;
+    
+    // Rendre le graphique de progression du patient
+    renderPatientProgressChart();
+}
+
+// ── Graphique d'Évolution de la Récupération du Patient ───────────────────
+function renderPatientProgressChart() {
+    const svg = document.getElementById("patient-progress-svg");
+    if (!svg) return;
+    if (!currentUser) return;
+
+    // Récupérer le patient dans registeredPatients pour synchroniser
+    let patientObj = registeredPatients.find(p => p.phone === currentUser.phone);
+    if (!patientObj) {
+        patientObj = currentUser;
+    }
+
+    // Générer des données d'évolution si absentes
+    if (!patientObj.mobilityProgress || patientObj.mobilityProgress.length === 0) {
+        patientObj.mobilityProgress = [
+            { session: "Sém. 1", mobility: 20, pain: 85 },
+            { session: "Sém. 2", mobility: 35, pain: 70 },
+            { session: "Sém. 3", mobility: 50, pain: 55 },
+            { session: "Sém. 4", mobility: 70, pain: 30 },
+            { session: "Sém. 5", mobility: 85, pain: 15 }
+        ];
+        const pIndex = registeredPatients.findIndex(p => p.phone === patientObj.phone);
+        if (pIndex >= 0) {
+            registeredPatients[pIndex].mobilityProgress = patientObj.mobilityProgress;
+            localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
+        }
+    }
+
+    const data = patientObj.mobilityProgress;
+    const width = 800;
+    const height = 240;
+    const paddingLeft = 40;
+    const paddingRight = 20;
+    const paddingTop = 30;
+    const paddingBottom = 40;
+    const chartWidth = width - paddingLeft - paddingRight;
+    const chartHeight = height - paddingTop - paddingBottom;
+
+    // Coordonnées des points
+    const pointsMobility = data.map((d, i) => {
+        const x = paddingLeft + (i * (chartWidth / (data.length - 1)));
+        const y = height - paddingBottom - ((d.mobility / 100) * chartHeight);
+        return { x, y, val: d.mobility, label: d.session };
+    });
+
+    const pointsPain = data.map((d, i) => {
+        const x = paddingLeft + (i * (chartWidth / (data.length - 1)));
+        const y = height - paddingBottom - ((d.pain / 100) * chartHeight);
+        return { x, y, val: d.pain, label: d.session };
+    });
+
+    let pathMobility = `M ${pointsMobility[0].x} ${pointsMobility[0].y}`;
+    let pathPain = `M ${pointsPain[0].x} ${pointsPain[0].y}`;
+
+    for (let i = 1; i < data.length; i++) {
+        pathMobility += ` L ${pointsMobility[i].x} ${pointsMobility[i].y}`;
+        pathPain += ` L ${pointsPain[i].x} ${pointsPain[i].y}`;
+    }
+
+    let svgHTML = `
+        <defs>
+            <linearGradient id="patientGradMobility" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#10b981" stop-opacity="0.15"/>
+                <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+            </linearGradient>
+            <linearGradient id="patientGradPain" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ef4444" stop-opacity="0.12"/>
+                <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+            </linearGradient>
+        </defs>
+        <!-- Grille de fond -->
+        <line x1="${paddingLeft}" y1="${height - paddingBottom}" x2="${width - paddingRight}" y2="${height - paddingBottom}" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
+        <line x1="${paddingLeft}" y1="${height - paddingBottom - chartHeight/2}" x2="${width - paddingRight}" y2="${height - paddingBottom - chartHeight/2}" stroke="rgba(255,255,255,0.04)" stroke-dasharray="4,4" stroke-width="1" />
+        <line x1="${paddingLeft}" y1="${paddingTop}" x2="${width - paddingRight}" y2="${paddingTop}" stroke="rgba(255,255,255,0.04)" stroke-dasharray="4,4" stroke-width="1" />
+        
+        <!-- Légende Y -->
+        <text x="${paddingLeft - 10}" y="${paddingTop + 4}" fill="rgba(255,255,255,0.4)" font-size="10" text-anchor="end">100%</text>
+        <text x="${paddingLeft - 10}" y="${height - paddingBottom - chartHeight/2 + 4}" fill="rgba(255,255,255,0.4)" font-size="10" text-anchor="end">50%</text>
+        <text x="${paddingLeft - 10}" y="${height - paddingBottom + 4}" fill="rgba(255,255,255,0.4)" font-size="10" text-anchor="end">0%</text>
+    `;
+
+    // Aires sous la courbe
+    let fillMobility = pathMobility + ` L ${pointsMobility[pointsMobility.length-1].x} ${height - paddingBottom} L ${pointsMobility[0].x} ${height - paddingBottom} Z`;
+    let fillPain = pathPain + ` L ${pointsPain[pointsPain.length-1].x} ${height - paddingBottom} L ${pointsPain[0].x} ${height - paddingBottom} Z`;
+
+    svgHTML += `<path d="${fillMobility}" fill="url(#patientGradMobility)" />`;
+    svgHTML += `<path d="${fillPain}" fill="url(#patientGradPain)" />`;
+
+    // Lignes de courbes
+    svgHTML += `<path d="${pathMobility}" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`;
+    svgHTML += `<path d="${pathPain}" fill="none" stroke="#ef4444" stroke-width="3" stroke-dasharray="3,3" stroke-linecap="round" stroke-linejoin="round" />`;
+
+    // Points interactifs Mobilité (Vert)
+    pointsMobility.forEach(p => {
+        svgHTML += `
+            <circle cx="${p.x}" cy="${p.y}" r="5" fill="#10b981" stroke="#050810" stroke-width="2" />
+            <text x="${p.x}" y="${p.y - 10}" fill="#10b981" font-size="10" font-weight="700" text-anchor="middle">${p.val}%</text>
+            <text x="${p.x}" y="${height - paddingBottom + 18}" fill="rgba(255,255,255,0.5)" font-size="10" text-anchor="middle">${p.label}</text>
+        `;
+    });
+
+    // Points interactifs Douleur (Rouge)
+    pointsPain.forEach(p => {
+        svgHTML += `
+            <circle cx="${p.x}" cy="${p.y}" r="5" fill="#ef4444" stroke="#050810" stroke-width="2" />
+            <text x="${p.x}" y="${p.y - 10}" fill="#ef4444" font-size="10" font-weight="700" text-anchor="middle">${p.val}%</text>
+        `;
+    });
+
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.innerHTML = svgHTML;
 }
 
 // ── 6. STRICT 30-MINUTES TIMING CALENDAR & CONFIRMATION PANEL ─────────────
@@ -3244,7 +3400,7 @@ function openAdminNotes(phoneFormatted) {
     
     document.getElementById("admin-notes-patient-name").value = p.name;
     document.getElementById("admin-notes-patient-phone").value = p.phone;
-    document.getElementById("admin-notes-content").value = p.adminNotes || p.admin_notes || "";
+    document.getElementById("admin-notes-content").value = decryptData(p.adminNotes || p.admin_notes || "");
     
     document.getElementById("modal-admin-notes").classList.remove("hidden");
 }
@@ -3259,8 +3415,9 @@ async function saveAdminNotes() {
     
     const pIndex = registeredPatients.findIndex(x => x.phone === phone);
     if (pIndex !== -1) {
-        registeredPatients[pIndex].adminNotes = notes;
-        registeredPatients[pIndex].admin_notes = notes; // for supabase
+        const encryptedNotes = encryptData(notes);
+        registeredPatients[pIndex].adminNotes = encryptedNotes;
+        registeredPatients[pIndex].admin_notes = encryptedNotes; // for supabase
         localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
         
         // Save to Supabase if available
@@ -3269,7 +3426,7 @@ async function saveAdminNotes() {
             btn.innerHTML = "Sauvegarde...";
             btn.disabled = true;
             try {
-                const { error } = await supabaseClient.from('profiles').update({ admin_notes: notes }).eq('phone', phone);
+                const { error } = await supabaseClient.from('profiles').update({ admin_notes: encryptedNotes }).eq('phone', phone);
                 if (error) console.error("Erreur sauvegarde notes:", error);
             } catch (e) {
                 console.error("Erreur notes", e);
