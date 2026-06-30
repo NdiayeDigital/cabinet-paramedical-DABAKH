@@ -3172,3 +3172,29 @@ html, body {
     opacity: 0.7;
 }
 .toast-close:hover { opacity: 1; }
+
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.password-toggle-btn {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-smooth);
+}
+.password-toggle-btn:hover {
+    color: var(--color-primary);
+}
+.password-toggle-btn svg {
+    width: 20px;
+    height: 20px;
+}

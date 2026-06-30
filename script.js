@@ -65,9 +65,44 @@ if (window.supabase) {
     }
 }
 
+function applySettingsToUI() {
+    document.querySelectorAll('.whatsapp-display-number').forEach(el => el.textContent = appSettings.whatsapp_display);
+    
+    // Update wa.me links to use whatsapp://send?phone= format for native app launch on mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    document.querySelectorAll('.whatsapp-link-dynamic').forEach(el => {
+        if (isMobile) {
+            el.href = `whatsapp://send?phone=${appSettings.whatsapp_number}`;
+        } else {
+            el.href = `https://wa.me/${appSettings.whatsapp_number}`;
+            el.target = "_blank";
+        }
+    });
+
+    document.querySelectorAll('.tel-link-dynamic').forEach(el => {
+        el.href = `tel:+${appSettings.whatsapp_number}`;
+    });
+}
+
+// Ensure settings are applied initially
+document.addEventListener("DOMContentLoaded", () => {
+    applySettingsToUI();
+});
+
 async function syncFromSupabase() {
     if (!supabaseClient) return;
     try {
+        const { data: dbSettings, error: errS } = await supabaseClient.from('settings').select('*');
+        if (dbSettings && dbSettings.length > 0) {
+            dbSettings.forEach(s => {
+                if (s.key === 'whatsapp_number') appSettings.whatsapp_number = s.value;
+                if (s.key === 'whatsapp_display') appSettings.whatsapp_display = s.value;
+            });
+            localStorage.setItem('daba_settings', JSON.stringify(appSettings));
+            applySettingsToUI();
+        }
+
         const { data: dbPatients, error: errP } = await supabaseClient.from('profiles').select('*');
         if (errP) console.error('Supabase profiles error:', errP);
         if (dbPatients && dbPatients.length > 0) {
@@ -378,6 +413,11 @@ diagnostics = diagnostics.map(d => {
 localStorage.setItem('daba_diagnostics', JSON.stringify(diagnostics));
 
 let smsNotifications = safeGetLocalStorage('daba_sms', []);
+
+let appSettings = safeGetLocalStorage('daba_settings', {
+    whatsapp_number: '221772091725',
+    whatsapp_display: '+221 77 209 17 25'
+});
 
 // Pre-populated medical database for beautiful dashboard analytics
 let registeredPatients = safeGetLocalStorage('daba_patients', [
@@ -846,6 +886,25 @@ function setupNavigation() {
         });
     }
 }
+
+// Password visibility toggle
+window.togglePasswordVisibility = function(inputId, btnElement) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+    
+    // Update icon
+    const icon = btnElement.querySelector('i');
+    if (icon) {
+        icon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
+        lucide.createIcons({ icons: { 'eye': window.lucide.icons.Eye, 'eye-off': window.lucide.icons.EyeOff }, nameAttr: 'data-lucide', attrs: { class: "lucide lucide-eye" } });
+        // It's safer to just re-initialize all icons for simplicity
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    }
+};
 
 function toggleAuthPage(show, formType = 'login') {
     if (show) {
@@ -2617,6 +2676,27 @@ function getIntelligentBotReply(query) {
 
 // ── 12. ADMINISTRATOR PORTAL HANDLERS ─────────────────────────────────────
 function setupAdminPortalHandlers() {
+    const adminSettingsForm = document.getElementById("admin-settings-form");
+    if (adminSettingsForm) {
+        adminSettingsForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const displayStr = document.getElementById("setting-whatsapp-display").value;
+            const numberStr = document.getElementById("setting-whatsapp-number").value;
+            
+            appSettings.whatsapp_display = displayStr;
+            appSettings.whatsapp_number = numberStr;
+            localStorage.setItem('daba_settings', JSON.stringify(appSettings));
+            applySettingsToUI();
+            
+            if (supabaseClient) {
+                await supabaseClient.from('settings').upsert({ key: 'whatsapp_display', value: displayStr });
+                await supabaseClient.from('settings').upsert({ key: 'whatsapp_number', value: numberStr });
+            }
+            
+            showToast("Paramètres", "Paramètres globaux mis à jour avec succès !", "success");
+        });
+    }
+
     const adminAddPatientForm = document.getElementById("admin-add-patient-form");
     if (adminAddPatientForm) {
         adminAddPatientForm.addEventListener("submit", async (e) => {
