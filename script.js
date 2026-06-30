@@ -933,6 +933,14 @@ function validateSenegalPhone(phoneStr) {
     return { isValid: false };
 }
 
+function comparePhones(phone1, phone2) {
+    if (!phone1 || !phone2) return false;
+    const clean1 = phone1.replace(/\D/g, '');
+    const clean2 = phone2.replace(/\D/g, '');
+    if (clean1.length < 9 || clean2.length < 9) return clean1 === clean2;
+    return clean1.slice(-9) === clean2.slice(-9);
+}
+
 function resetPhoneValidationFeedback() {
     const feedback = document.getElementById("phone-validation-feedback");
     if (feedback) {
@@ -993,7 +1001,7 @@ function setupAuthHandlers() {
                 return;
             }
 
-            const exists = registeredPatients.some(p => p.phone === phoneRes.formatted);
+            const exists = registeredPatients.some(p => comparePhones(p.phone, phoneRes.formatted));
             if (exists) {
                 alert("Un dossier patient avec ce numéro de téléphone existe déjà. Veuillez vous connecter.");
                 toggleAuthForm('login');
@@ -1103,7 +1111,7 @@ function setupAuthHandlers() {
                 
                 if (authError) {
                     const hashedPass = await hashPassword(pass);
-                    patientMatch = registeredPatients.find(p => p.phone === phoneRes.formatted && (p.password === hashedPass || p.password === pass));
+                    patientMatch = registeredPatients.find(p => comparePhones(p.phone, phoneRes.formatted) && (p.password === hashedPass || p.password === pass));
                     if (!patientMatch) {
                         alert("Identifiants incorrects. Veuillez vérifier votre numéro et mot de passe.");
                         return;
@@ -1119,7 +1127,7 @@ function setupAuthHandlers() {
                             adminNotes: decryptData(remoteP.admin_notes || "")
                         };
                         
-                        const existingIdx = registeredPatients.findIndex(p => p.phone === patientMatch.phone);
+                        const existingIdx = registeredPatients.findIndex(p => comparePhones(p.phone, patientMatch.phone));
                         if (existingIdx >= 0) registeredPatients[existingIdx] = patientMatch;
                         else registeredPatients.push(patientMatch);
                         localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
@@ -1130,7 +1138,7 @@ function setupAuthHandlers() {
                 }
             } else {
                 const hashedPass = await hashPassword(pass);
-                patientMatch = registeredPatients.find(p => p.phone === phoneRes.formatted && (p.password === hashedPass || p.password === pass));
+                patientMatch = registeredPatients.find(p => comparePhones(p.phone, phoneRes.formatted) && (p.password === hashedPass || p.password === pass));
                 if (!patientMatch) {
                     alert("Identifiants incorrects. Veuillez vérifier votre numéro et mot de passe.");
                     return;
@@ -1505,7 +1513,7 @@ function renderPatientProgressChart() {
     if (!currentUser) return;
 
     // Récupérer le patient dans registeredPatients pour synchroniser
-    let patientObj = registeredPatients.find(p => p.phone === currentUser.phone);
+    let patientObj = registeredPatients.find(p => comparePhones(p.phone, currentUser.phone));
     if (!patientObj) {
         patientObj = currentUser;
     }
@@ -1519,7 +1527,7 @@ function renderPatientProgressChart() {
             { session: "Sém. 4", mobility: 70, pain: 30 },
             { session: "Sém. 5", mobility: 85, pain: 15 }
         ];
-        const pIndex = registeredPatients.findIndex(p => p.phone === patientObj.phone);
+        const pIndex = registeredPatients.findIndex(p => comparePhones(p.phone, patientObj.phone));
         if (pIndex >= 0) {
             registeredPatients[pIndex].mobilityProgress = patientObj.mobilityProgress;
             localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
@@ -2630,7 +2638,7 @@ function setupAdminPortalHandlers() {
                 return;
             }
 
-            const exists = registeredPatients.some(p => p.phone === phoneRes.formatted);
+            const exists = registeredPatients.some(p => comparePhones(p.phone, phoneRes.formatted));
             if (exists) {
                 alert("Ce patient est déjà enregistré dans le fichier clinique.");
                 return;
@@ -2896,7 +2904,7 @@ function adminCancelAppointment(aptId) {
 
             alert("Rendez-vous annulé.");
             refreshAdminPortal();
-            if (currentUser && currentUser.phone === appointments[aptIndex].patientPhone) {
+            if (currentUser && comparePhones(currentUser.phone, appointments[aptIndex].patientPhone)) {
                 renderAppointmentsHistory();
                 renderOverviewTicket();
             }
@@ -2925,7 +2933,7 @@ function adminEditAppointmentPrompt(aptId) {
 
             alert("Rendez-vous modifié avec succès.");
             refreshAdminPortal();
-            if (currentUser && currentUser.phone === apt.patientPhone) {
+            if (currentUser && comparePhones(currentUser.phone, apt.patientPhone)) {
                 renderAppointmentsHistory();
                 renderOverviewTicket();
             }
@@ -3289,7 +3297,7 @@ function renderProfilesTable(filterData) {
         const rawPhone = (p.phone || '').replace(/\s/g, '');
         const waLink = 'https://wa.me/' + rawPhone.replace('+', '');
         const address = (p.address || '—').length > 28 ? (p.address || '—').slice(0, 26) + '…' : (p.address || '—');
-        const originalIdx = registeredPatients.findIndex(op => op.phone === p.phone);
+        const originalIdx = registeredPatients.findIndex(op => comparePhones(op.phone, p.phone));
 
         return `<tr>
             <td class="row-num">${idx + 1}</td>
@@ -3311,6 +3319,9 @@ function renderProfilesTable(filterData) {
             <td><span class="status-badge-active">Actif</span></td>
             <td>
                 <div class="profile-actions">
+                    <button class="profile-action-btn" style="color: var(--color-accent);" title="Fiche Clinique (Privé)" onclick="openAdminNotes('${p.phone || ''}')">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    </button>
                     <button class="profile-action-btn" title="Copier le numéro" onclick="copyProfilePhone('${p.phone || ''}')">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                     </button>
@@ -3395,7 +3406,7 @@ function exportProfilesCSV() {
 
 // ── EXTENDED PATIENT FILE: ADMIN NOTES ──────────────────────────────────
 function openAdminNotes(phoneFormatted) {
-    const p = registeredPatients.find(x => x.phone.replace(/\s+/g, '') === phoneFormatted);
+    const p = registeredPatients.find(x => comparePhones(x.phone, phoneFormatted));
     if (!p) return;
     
     document.getElementById("admin-notes-patient-name").value = p.name;
@@ -3413,7 +3424,7 @@ async function saveAdminNotes() {
     const phone = document.getElementById("admin-notes-patient-phone").value;
     const notes = document.getElementById("admin-notes-content").value;
     
-    const pIndex = registeredPatients.findIndex(x => x.phone === phone);
+    const pIndex = registeredPatients.findIndex(x => comparePhones(x.phone, phone));
     if (pIndex !== -1) {
         const encryptedNotes = encryptData(notes);
         registeredPatients[pIndex].adminNotes = encryptedNotes;
