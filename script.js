@@ -995,6 +995,11 @@ function appSwitchTab(tabId) {
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
     
+    // Render stats when tab is activated
+    if (tabId === 'tab-admin-stats') {
+        if (typeof renderAdminStats === 'function') renderAdminStats();
+    }
+    
     // Render documents tab when its tab is activated
     if (tabId === 'tab-documents') {
         if (typeof renderDocumentsTab === 'function') renderDocumentsTab();
@@ -3723,4 +3728,96 @@ function generateInvoicePDF(appointmentId) {
     html2pdf().set(opt).from(element).save().then(() => {
         element.style.display = 'none'; // Hide again
     });
+}
+
+// ==========================================
+// ADMIN STATS PAGE (CHART.JS)
+// ==========================================
+let revenueChartInstance = null;
+let servicesChartInstance = null;
+
+function renderAdminStats() {
+    if (typeof Chart === 'undefined') {
+        console.warn("Chart.js not loaded.");
+        return;
+    }
+
+    const completedApts = (appointments || []).filter(a => a.status === 'Terminé');
+    const revenueByMonth = [0, 0, 0, 0, 0, 0]; // Last 6 months
+    const monthLabels = [];
+    const now = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        monthLabels.push(d.toLocaleDateString('fr-FR', { month: 'short' }));
+    }
+
+    completedApts.forEach(apt => {
+        const aptDate = new Date(apt.date);
+        const diffMonths = (now.getFullYear() - aptDate.getFullYear()) * 12 + now.getMonth() - aptDate.getMonth();
+        if (diffMonths >= 0 && diffMonths < 6) {
+            revenueByMonth[5 - diffMonths] += (apt.price || 0);
+        }
+    });
+
+    const ctxRev = document.getElementById('revenueChart');
+    if (ctxRev) {
+        if (revenueChartInstance) revenueChartInstance.destroy();
+        revenueChartInstance = new Chart(ctxRev, {
+            type: 'line',
+            data: {
+                labels: monthLabels,
+                datasets: [{
+                    label: 'Revenus (FCFA)',
+                    data: revenueByMonth,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    const serviceCounts = {};
+    (appointments || []).forEach(apt => {
+        if (apt.serviceName) {
+            serviceCounts[apt.serviceName] = (serviceCounts[apt.serviceName] || 0) + 1;
+        }
+    });
+
+    const srvLabels = Object.keys(serviceCounts);
+    const srvData = Object.values(serviceCounts);
+    const ctxSrv = document.getElementById('servicesChart');
+    if (ctxSrv && srvLabels.length > 0) {
+        if (servicesChartInstance) servicesChartInstance.destroy();
+        servicesChartInstance = new Chart(ctxSrv, {
+            type: 'doughnut',
+            data: {
+                labels: srvLabels,
+                datasets: [{
+                    data: srvData,
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+
+    // Update real-time metric cards
+    const elPatients = document.getElementById('stats-total-patients');
+    const elRdv = document.getElementById('stats-total-rdv');
+    const elDocs = document.getElementById('stats-total-docs');
+    if (elPatients) elPatients.textContent = registeredPatients.length;
+    if (elRdv) elRdv.textContent = appointments.length;
+    if (elDocs) elDocs.textContent = diagnostics.length;
 }
