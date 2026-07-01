@@ -319,14 +319,14 @@ async function syncFromSupabase() {
 
 async function savePatientRemote(p) {
     if (!supabaseClient) return;
-    const { error } = await supabaseClient.from('profiles').upsert([{
+    const { error } = await supabaseClient.from('profiles').insert([{
         name: p.name,
         phone: p.phone,
         address: p.address,
         password_hash: p.password,
         region: p.region || 'Dakar',
         registered_at: p.registeredAt || new Date().toISOString()
-    }], { onConflict: 'phone' });
+    }]);
     if (error) console.error('Erreur sauvegarde patient Supabase:', error);
     else {
         // Rafraîchir l'admin si connecté
