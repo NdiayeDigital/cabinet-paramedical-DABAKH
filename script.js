@@ -379,10 +379,36 @@ async function uploadFileToSupabase(file, patientPhone) {
             console.error('Erreur upload Supabase Storage:', error);
             return null;
         }
-        const { data: urlData } = supabaseClient.storage.from('medical-files').getPublicUrl(fileName);
-        return urlData.publicUrl;
+        return fileName; // Return just the path, not the public URL
     } catch (e) {
         console.error('Erreur upload fichier:', e);
+        return null;
+    }
+}
+
+async function viewMedicalFile(filePathOrUrl) {
+    if (!supabaseClient) return null;
+    try {
+        // If it's a full URL, extract the path
+        let filePath = filePathOrUrl;
+        if (filePath.includes('/public/medical-files/')) {
+            filePath = filePath.split('/public/medical-files/')[1];
+        }
+
+        const { data, error } = await supabaseClient.storage
+            .from('medical-files')
+            .createSignedUrl(filePath, 60); // Link valid for 60 seconds
+
+        if (error || !data) {
+            console.error("Erreur génération URL signée:", error);
+            alert("Erreur: Impossible de lire le fichier privé. Vérifiez les permissions.");
+            return null;
+        }
+        
+        window.open(data.signedUrl, '_blank');
+        return data.signedUrl;
+    } catch (e) {
+        console.error("Erreur viewMedicalFile:", e);
         return null;
     }
 }
@@ -3643,19 +3669,17 @@ function renderDocumentsTab() {
         prescriptionsList.innerHTML = '<p class="text-muted text-sm text-center">Aucune ordonnance/diagnostic disponible.</p>';
     } else {
         prescriptionsList.innerHTML = myDiagnostics.map(diag => {
-            const fileUrl = (supabaseClient && diag.file_path) 
-                ? supabaseClient.storage.from('medical-files').getPublicUrl(diag.file_path).data.publicUrl
-                : '#';
-            
+            const filePath = diag.file_path || diag.fileUrl || diag.fileName || '';
+            const safePath = filePath.replace(/'/g, "\\'");
             return `
             <div class="flex justify-between align-center border-b pb-1 mb-1" style="border-bottom: 1px solid var(--color-border);">
                 <div>
                     <h4 class="font-bold text-sm">${diag.description || 'Document Médical'}</h4>
-                    <p class="text-xs text-muted">${new Date(diag.uploadedAt || diag.created_at).toLocaleDateString()}</p>
+                    <p class="text-xs text-muted">${new Date(diag.uploadedAt || diag.created_at || new Date()).toLocaleDateString()}</p>
                 </div>
-                <a href="${fileUrl}" target="_blank" class="btn btn-sm btn-secondary">
+                <button onclick="viewMedicalFile('${safePath}')" class="btn btn-sm btn-secondary">
                     <i data-lucide="external-link"></i> Voir
-                </a>
+                </button>
             </div>
         `}).join('');
     }
