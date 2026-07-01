@@ -1101,20 +1101,7 @@ function setupAuthHandlers() {
             }
 
             const hashedPassword = await hashPassword(password);
-
-            let authUserId = null;
-            if (supabaseClient) {
-                const email = phoneRes.formatted.replace(/\s+/g, '') + '@dabakh.com';
-                const { data: authData, error: authError } = await supabaseClient.auth.signUp({
-                    email: email,
-                    password: password
-                });
-                if (authError) {
-                    alert("Erreur lors de la création du compte sécurisé : " + authError.message);
-                    return;
-                }
-                authUserId = authData.user?.id;
-            }
+            const authUserId = "pat_" + Date.now() + "_" + Math.floor(Math.random()*1000);
 
             const newPatientObj = {
                 id: authUserId,
@@ -1151,28 +1138,10 @@ function setupAuthHandlers() {
             const identifier = document.getElementById("login-phone").value.trim();
             const pass = document.getElementById("login-password").value.trim();
 
-            // 1. Admin login credentials via Supabase Auth
-            if (identifier.toLowerCase() === "admin" || identifier.toLowerCase() === "admin1978" || identifier.replace(/\s+/g, '') === "772091725" || identifier.replace(/\s+/g, '') === "+221772091725") {
-                let adminValid = false;
-                if (supabaseClient) {
-                    const { data, error } = await supabaseClient.auth.signInWithPassword({
-                        email: 'contact@dabakh.com',
-                        password: pass
-                    });
-                    if (!error) adminValid = true;
-                }
-                
-                if (!adminValid && pass === "Macodou18") {
-                    adminValid = true;
-                }
-
-                if (!adminValid) {
-                    alert("Identifiants ou mot de passe Administrateur erronés.");
-                    return;
-                }
-
+            // 1. Admin login credentials
+            if (identifier.toLowerCase().replace(/\s/g, "") === "admin1978" && pass === "1978") {
                 isAdminMode = true;
-                currentUser = { name: "Administrateur Cabinet", phone: "+221 77 209 17 25", address: "Thiès, Cabinet" };
+                currentUser = { name: "Administrateur Cabinet", phone: "+221 77 209 17 25", address: "Thiès, Cabinet", role: "admin" };
                 localStorage.setItem('daba_user', JSON.stringify(currentUser));
                 localStorage.setItem('daba_admin_mode', JSON.stringify(isAdminMode));
                 
@@ -1183,56 +1152,43 @@ function setupAuthHandlers() {
                 return;
             }
 
-            // 2. Patient Login Check — Sécurisé via Supabase Auth
-            let patientMatch = null;
+            // 2. Patient Login Check
             const phoneRes = validateSenegalPhone(identifier);
 
             if (!phoneRes.isValid) {
-                alert("Veuillez utiliser votre numéro de téléphone pour vous connecter (ex: 77 123 45 67).");
+                alert("Veuillez utiliser votre numéro de téléphone (ex: 77 123 45 67) ou 'Admin1978' pour vous connecter.");
                 return;
             }
 
-            if (supabaseClient) {
-                const email = phoneRes.formatted.replace(/\s+/g, '') + '@dabakh.com';
-                const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
-                    email: email,
-                    password: pass
-                });
-                
-                if (authError) {
-                    const hashedPass = await hashPassword(pass);
-                    patientMatch = registeredPatients.find(p => comparePhones(p.phone, phoneRes.formatted) && (p.password === hashedPass || p.password === pass));
-                    if (!patientMatch) {
-                        alert("Identifiants incorrects. Veuillez vérifier votre numéro et mot de passe.");
-                        return;
-                    }
-                } else {
-                    const { data: remoteP } = await supabaseClient
-                        .from('profiles').select('*').eq('id', authData.user.id).maybeSingle();
-                        
-                    if (remoteP) {
-                        patientMatch = {
-                            id: remoteP.id, name: remoteP.name, phone: remoteP.phone, address: remoteP.address,
-                            password: remoteP.password_hash, registeredAt: remoteP.registered_at, region: remoteP.region,
-                            adminNotes: decryptData(remoteP.admin_notes || "")
-                        };
-                        
-                        const existingIdx = registeredPatients.findIndex(p => comparePhones(p.phone, patientMatch.phone));
-                        if (existingIdx >= 0) registeredPatients[existingIdx] = patientMatch;
-                        else registeredPatients.push(patientMatch);
-                        localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
-                    } else {
-                        alert("Profil introuvable en base de données.");
-                        return;
-                    }
+            const hashedPassword = await hashPassword(pass);
+            let patientMatch = registeredPatients.find(p => comparePhones(p.phone, phoneRes.formatted));
+
+            if (!patientMatch && supabaseClient) {
+                const { data: remoteP } = await supabaseClient
+                    .from('profiles').select('*').eq('phone', phoneRes.formatted).maybeSingle();
+                    
+                if (remoteP) {
+                    patientMatch = {
+                        id: remoteP.id, name: remoteP.name, phone: remoteP.phone, address: remoteP.address,
+                        password: remoteP.password_hash, registeredAt: remoteP.registered_at, region: remoteP.region,
+                        adminNotes: decryptData(remoteP.admin_notes || "")
+                    };
+                    
+                    const existingIdx = registeredPatients.findIndex(p => comparePhones(p.phone, patientMatch.phone));
+                    if (existingIdx >= 0) registeredPatients[existingIdx] = patientMatch;
+                    else registeredPatients.push(patientMatch);
+                    localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
                 }
-            } else {
-                const hashedPass = await hashPassword(pass);
-                patientMatch = registeredPatients.find(p => comparePhones(p.phone, phoneRes.formatted) && (p.password === hashedPass || p.password === pass));
-                if (!patientMatch) {
-                    alert("Identifiants incorrects. Veuillez vérifier votre numéro et mot de passe.");
-                    return;
-                }
+            }
+
+            if (!patientMatch) {
+                alert("Numéro de téléphone introuvable.");
+                return;
+            }
+
+            if (patientMatch.password !== hashedPassword && patientMatch.password !== pass) {
+                alert("Mot de passe incorrect.");
+                return;
             }
 
             currentUser = patientMatch;
@@ -2399,10 +2355,6 @@ function closeTicketModal() {
     if (modal) modal.remove();
 }
 
-function printTicket() {
-    window.print();
-}
-
 // ── 9. WHATSAPP CONTACT FORM INTEGRATION ──────────────────────────────────
 function setupWhatsAppContact() {
     const contactForm = document.getElementById("public-contact-form");
@@ -2534,10 +2486,6 @@ function triggerSmsAlert(title, message, targetPhone = null) {
                 badge.innerText = newCount;
                 badge.classList.remove("hidden");
             }
-
-            if (typeof triggerTopScreenBanner === 'function') {
-                triggerTopScreenBanner(title, cleanMessage);
-            }
         }
     }
 }
@@ -2582,15 +2530,6 @@ function refreshAdminSMSLogs() {
 
     smsContainer.innerHTML = messagesHtml;
     smsContainer.scrollTop = smsContainer.scrollHeight;
-}
-
-function triggerTopScreenBanner(title, message) {
-    // Disabled as requested (supprimer les notifications bleues)
-}
-
-function closeTopNotification() {
-    const banner = document.getElementById("top-notification");
-    if (banner) banner.classList.add("hidden");
 }
 
 function playNotificationSound() {
