@@ -103,36 +103,71 @@ async function syncFromSupabase() {
             applySettingsToUI();
         }
 
-        const { data: dbPatients, error: errP } = await supabaseClient.from('profiles').select('*');
-        if (errP) console.error('Supabase profiles error:', errP);
-        if (dbPatients && dbPatients.length > 0) {
-            registeredPatients = dbPatients.map(p => ({
-                name: p.name || p.full_name, phone: p.phone, address: p.address,
-                password: p.password_hash, registeredAt: p.registered_at || p.created_at, region: p.region || 'Dakar',
-                adminNotes: decryptData(p.admin_notes || "")
-            }));
-            localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
-        }
-        const { data: dbApts } = await supabaseClient.from('appointments').select('*');
-        if (dbApts && dbApts.length > 0) {
-            appointments = dbApts.map(a => ({
-                id: a.id, patientPhone: a.patient_phone, patientName: a.patient_name,
-                serviceId: a.service_id, serviceName: a.service_name, price: a.price,
-                doctor: a.doctor, date: a.appointment_date, time: a.appointment_time,
-                status: a.status, notes: a.notes, createdAt: a.created_at
-            }));
-            localStorage.setItem('daba_appointments', JSON.stringify(appointments));
-        }
-        const { data: dbDiags } = await supabaseClient.from('diagnostics').select('*');
-        if (dbDiags && dbDiags.length > 0) {
-            diagnostics = dbDiags.map(d => ({
-                id: d.id, patientPhone: d.patient_phone, patientName: d.patient_name,
-                serviceId: d.service_id, serviceName: d.service_name, symptoms: d.symptoms,
-                fileName: d.file_name, fileUrl: d.file_url, fileType: d.file_type,
-                aiAnalysis: d.ai_analysis, status: d.status, adminNotes: d.admin_notes,
-                createdAt: d.submitted_at || d.created_at || new Date().toISOString()
-            }));
-            localStorage.setItem('daba_diagnostics', JSON.stringify(diagnostics));
+        const adminToken = localStorage.getItem('daba_admin_token');
+        
+        if (isAdminMode && adminToken) {
+            const { data: adminData, error: adminErr } = await supabaseClient.rpc('get_admin_dashboard_data', { p_token: adminToken });
+            if (!adminErr && adminData) {
+                registeredPatients = (adminData.profiles || []).map(p => ({
+                    name: p.name || p.full_name, phone: p.phone, address: p.address,
+                    password: p.password_hash, registeredAt: p.registered_at || p.created_at, region: p.region || 'Dakar',
+                    adminNotes: decryptData(p.admin_notes || "")
+                }));
+                localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
+
+                appointments = (adminData.appointments || []).map(a => ({
+                    id: a.id, patientPhone: a.patient_phone, patientName: a.patient_name,
+                    serviceId: a.service_id, serviceName: a.service_name, price: a.price,
+                    doctor: a.doctor, date: a.appointment_date, time: a.appointment_time,
+                    status: a.status, notes: a.notes, createdAt: a.created_at
+                }));
+                localStorage.setItem('daba_appointments', JSON.stringify(appointments));
+
+                diagnostics = (adminData.diagnostics || []).map(d => ({
+                    id: d.id, patientPhone: d.patient_phone, patientName: d.patient_name,
+                    serviceId: d.service_id, serviceName: d.service_name, symptoms: d.symptoms,
+                    fileName: d.file_name, fileUrl: d.file_url, fileType: d.file_type,
+                    aiAnalysis: d.ai_analysis, status: d.status, adminNotes: d.admin_notes,
+                    createdAt: d.submitted_at || d.created_at || new Date().toISOString()
+                }));
+                localStorage.setItem('daba_diagnostics', JSON.stringify(diagnostics));
+            }
+        } else if (currentUser && currentUser.phone) {
+            const { data: patData, error: patErr } = await supabaseClient.rpc('get_patient_dashboard_data', { 
+                p_phone: currentUser.phone, 
+                p_password: currentUser.password 
+            });
+            if (!patErr && patData) {
+                const p = patData.profile;
+                if (p) {
+                    const profileObj = {
+                        name: p.name || p.full_name, phone: p.phone, address: p.address,
+                        password: p.password_hash, registeredAt: p.registered_at || p.created_at, region: p.region || 'Dakar',
+                        adminNotes: decryptData(p.admin_notes || "")
+                    };
+                    const existingIdx = registeredPatients.findIndex(rp => comparePhones(rp.phone, profileObj.phone));
+                    if (existingIdx >= 0) registeredPatients[existingIdx] = profileObj;
+                    else registeredPatients.push(profileObj);
+                    localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
+                }
+
+                appointments = (patData.appointments || []).map(a => ({
+                    id: a.id, patientPhone: a.patient_phone, patientName: a.patient_name,
+                    serviceId: a.service_id, serviceName: a.service_name, price: a.price,
+                    doctor: a.doctor, date: a.appointment_date, time: a.appointment_time,
+                    status: a.status, notes: a.notes, createdAt: a.created_at
+                }));
+                localStorage.setItem('daba_appointments', JSON.stringify(appointments));
+
+                diagnostics = (patData.diagnostics || []).map(d => ({
+                    id: d.id, patientPhone: d.patient_phone, patientName: d.patient_name,
+                    serviceId: d.service_id, serviceName: d.service_name, symptoms: d.symptoms,
+                    fileName: d.file_name, fileUrl: d.file_url, fileType: d.file_type,
+                    aiAnalysis: d.ai_analysis, status: d.status, adminNotes: d.admin_notes,
+                    createdAt: d.submitted_at || d.created_at || new Date().toISOString()
+                }));
+                localStorage.setItem('daba_diagnostics', JSON.stringify(diagnostics));
+            }
         }
 
         const { data: dbNotifs } = await supabaseClient.from('notifications').select('*').order('created_at', { ascending: true });
@@ -1120,6 +1155,7 @@ function setupAuthHandlers() {
             currentUser = newPatientObj;
             isAdminMode = false;
             localStorage.setItem('daba_user', JSON.stringify(currentUser));
+            localStorage.removeItem('daba_admin_token');
             localStorage.setItem('daba_admin_mode', JSON.stringify(isAdminMode));
 
             triggerSmsAlert("INSCRIPTION PATIENT", `Nouveau patient inscrit.\nNom: ${name}\nAdresse: ${address}\nTel: ${phoneRes.formatted}.`);
@@ -1138,8 +1174,29 @@ function setupAuthHandlers() {
             const identifier = document.getElementById("login-phone").value.trim();
             const pass = document.getElementById("login-password").value.trim();
 
-            // 1. Admin login credentials
-            if (identifier.toLowerCase().replace(/\s/g, "") === "admin1978" && pass === "1978") {
+            // 1. Admin login credentials (via Secure RPC)
+            if (supabaseClient) {
+                const { data: adminToken, error: adminErr } = await supabaseClient.rpc('verify_admin', { 
+                    p_username: identifier.toLowerCase().replace(/\s/g, ""), 
+                    p_password: pass 
+                });
+
+                if (!adminErr && adminToken) {
+                    isAdminMode = true;
+                    currentUser = { name: "Administrateur Cabinet", phone: "+221 77 209 17 25", address: "Thiès, Cabinet", role: "admin" };
+                    localStorage.setItem('daba_user', JSON.stringify(currentUser));
+                    localStorage.setItem('daba_admin_mode', JSON.stringify(isAdminMode));
+                    localStorage.setItem('daba_admin_token', adminToken);
+                    
+                    await syncFromSupabase(); // Load data with token
+                    toggleAuthPage(false);
+                    checkAuthState();
+                    appSwitchTab('tab-admin-overview');
+                    alert("Accès Administrateur accordé. Bienvenue sur le portail DABAKH.");
+                    return;
+                }
+            } else if (identifier.toLowerCase().replace(/\s/g, "") === "admin1978" && pass === "1978") {
+                // Offline fallback
                 isAdminMode = true;
                 currentUser = { name: "Administrateur Cabinet", phone: "+221 77 209 17 25", address: "Thiès, Cabinet", role: "admin" };
                 localStorage.setItem('daba_user', JSON.stringify(currentUser));
@@ -1148,10 +1205,10 @@ function setupAuthHandlers() {
                 toggleAuthPage(false);
                 checkAuthState();
                 appSwitchTab('tab-admin-overview');
-                alert("Accès Administrateur accordé. Bienvenue sur le portail DABAKH.");
+                alert("Accès Administrateur accordé (Mode Hors-Ligne).");
                 return;
             }
-
+            
             // 2. Patient Login Check
             const phoneRes = validateSenegalPhone(identifier);
 
@@ -1164,17 +1221,20 @@ function setupAuthHandlers() {
             let patientMatch = registeredPatients.find(p => comparePhones(p.phone, phoneRes.formatted));
 
             if (!patientMatch && supabaseClient) {
-                const { data: remoteP } = await supabaseClient
-                    .from('profiles').select('*').eq('phone', phoneRes.formatted).maybeSingle();
+                const { data: patData, error: patErr } = await supabaseClient.rpc('get_patient_dashboard_data', { 
+                    p_phone: phoneRes.formatted, 
+                    p_password: hashedPassword 
+                });
                     
-                if (remoteP) {
+                if (!patErr && patData && patData.profile) {
+                    const p = patData.profile;
                     patientMatch = {
-                        id: remoteP.id, name: remoteP.name, phone: remoteP.phone, address: remoteP.address,
-                        password: remoteP.password_hash, registeredAt: remoteP.registered_at, region: remoteP.region,
-                        adminNotes: decryptData(remoteP.admin_notes || "")
+                        id: p.id, name: p.name || p.full_name, phone: p.phone, address: p.address,
+                        password: p.password_hash, registeredAt: p.registered_at || p.created_at, region: p.region || 'Dakar',
+                        adminNotes: decryptData(p.admin_notes || "")
                     };
                     
-                    const existingIdx = registeredPatients.findIndex(p => comparePhones(p.phone, patientMatch.phone));
+                    const existingIdx = registeredPatients.findIndex(rp => comparePhones(rp.phone, patientMatch.phone));
                     if (existingIdx >= 0) registeredPatients[existingIdx] = patientMatch;
                     else registeredPatients.push(patientMatch);
                     localStorage.setItem('daba_patients', JSON.stringify(registeredPatients));
