@@ -666,8 +666,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     refreshAdminSMSLogs();
     setupAdminPortalHandlers();
 
-    // Wait for splash animation and sync to complete
-    await Promise.all([runSplashLoader(), syncPromise]);
+    // Wait for splash animation and sync to complete (max 6 seconds for sync)
+    const timeoutPromise = new Promise(resolve => setTimeout(resolve, 6000));
+    await Promise.race([Promise.all([runSplashLoader(), syncPromise]), timeoutPromise]);
+
+    const splashScreen = document.getElementById("splash-screen");
+    if (splashScreen) {
+        splashScreen.classList.add("fade-out");
+        setTimeout(() => {
+            splashScreen.style.display = "none";
+        }, 800);
+    }
 
     checkOnboarding();
     checkAuthState();
@@ -714,11 +723,7 @@ function runSplashLoader() {
 
             if (progress >= 100) {
                 clearInterval(loaderInterval);
-                splashScreen.classList.add("fade-out");
-                setTimeout(() => {
-                    splashScreen.style.display = "none";
-                    resolve();
-                }, 800); // Wait for transition fade-out
+                resolve();
             }
         }, intervalTime);
     });
