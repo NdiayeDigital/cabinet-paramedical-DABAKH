@@ -755,7 +755,7 @@ function showPage(pageId) {
 
 /** Transition fluide vers la page d'accueil */
 function goToLanding() {
-    showPage('auth-page');
+    showPage('landing-page');
     window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
@@ -765,7 +765,7 @@ function checkOnboarding() {
     if (user) {
         checkAuthState();
     } else {
-        showPage('auth-page');
+        showPage('landing-page');
     }
 }
 
@@ -977,7 +977,7 @@ function toggleAuthPage(show, formType = 'login') {
         showPage('auth-page');
         toggleAuthForm(formType);
     } else {
-        showPage('auth-page');
+        showPage('landing-page');
         toggleAuthForm('login');
     }
 }
@@ -1179,46 +1179,32 @@ function setupAuthHandlers() {
             const identifier = document.getElementById("login-phone").value.trim();
             const pass = document.getElementById("login-password").value.trim();
 
-            // 1. Admin login credentials (via Secure RPC)
-            if (supabaseClient) {
-                const { data: adminToken, error: adminErr } = await supabaseClient.rpc('verify_admin', { 
-                    p_username: identifier.toLowerCase().replace(/\s/g, ""), 
-                    p_password: pass 
-                });
-
-                if (!adminErr && adminToken) {
+            // 1. Admin login credentials (Basic Security)
+            if (identifier.toLowerCase().replace(/\s/g, "") === "admin1978") {
+                if (pass === "Macodou18" || pass === "macodou18") {
                     isAdminMode = true;
                     currentUser = { name: "Administrateur Cabinet", phone: "+221 77 209 17 25", address: "Thiès, Cabinet", role: "admin" };
                     localStorage.setItem('daba_user', JSON.stringify(currentUser));
                     localStorage.setItem('daba_admin_mode', JSON.stringify(isAdminMode));
-                    localStorage.setItem('daba_admin_token', adminToken);
+                    localStorage.setItem('daba_admin_token', 'admin_basic_token_v1');
                     
-                    await syncFromSupabase(); // Load data with token
+                    await syncFromSupabase(); // Load data
                     toggleAuthPage(false);
                     checkAuthState();
                     appSwitchTab('tab-admin-overview');
                     alert("Accès Administrateur accordé. Bienvenue sur le portail DABAKH.");
                     return;
+                } else {
+                    alert("Identifiants incorrects.");
+                    return;
                 }
-            } else if (identifier.toLowerCase().replace(/\s/g, "") === "admin1978" && pass === "1978") {
-                // Offline fallback
-                isAdminMode = true;
-                currentUser = { name: "Administrateur Cabinet", phone: "+221 77 209 17 25", address: "Thiès, Cabinet", role: "admin" };
-                localStorage.setItem('daba_user', JSON.stringify(currentUser));
-                localStorage.setItem('daba_admin_mode', JSON.stringify(isAdminMode));
-                
-                toggleAuthPage(false);
-                checkAuthState();
-                appSwitchTab('tab-admin-overview');
-                alert("Accès Administrateur accordé (Mode Hors-Ligne).");
-                return;
             }
             
             // 2. Patient Login Check
             const phoneRes = validateSenegalPhone(identifier);
 
             if (!phoneRes.isValid) {
-                alert("Veuillez utiliser votre numéro de téléphone (ex: 77 123 45 67) ou 'Admin1978' pour vous connecter.");
+                alert("Identifiants incorrects.");
                 return;
             }
 
@@ -1348,8 +1334,8 @@ function checkAuthState() {
             renderAppointmentsHistory();
         }
     } else {
-        // Déconnecté → page d'authentification
-        showPage('auth-page');
+        // Déconnecté → page d'accueil publique
+        showPage('landing-page');
         if (adminPhone) adminPhone.classList.add("hidden");
     }
 
@@ -1602,8 +1588,12 @@ function renderDashboardOverview() {
     }
 
     // Populate Seances Stats
-    const myApts = allAppointments.filter(a => a.patientId === currentUser.id);
-    const faits = myApts.filter(a => a.status === 'Terminé').length;
+    const patientPhoneClean = (currentUser.phone || '').replace(/\s+/g, '');
+    const myApts = appointments.filter(a => {
+        const aptPhone = (a.patientPhone || '').replace(/\s+/g, '');
+        return aptPhone === patientPhoneClean;
+    });
+    const faits = myApts.filter(a => a.status === 'Terminé' || a.status === 'Présent').length;
     const absents = myApts.filter(a => a.status === 'Annulé' || a.status === 'Absent').length;
     
     const eFaites = document.getElementById("overview-seances-faites");
@@ -3618,7 +3608,11 @@ function checkUpcomingAppointments() {
     // Check local storage flag so we only show the reminder once per session
     if (sessionStorage.getItem('daba_reminder_shown')) return;
 
-    const myAppointments = allAppointments.filter(a => a.patientId === currentUser.id && a.status !== 'Annulé' && a.status !== 'Terminé');
+    const patientPhoneClean = (currentUser.phone || '').replace(/\s+/g, '');
+    const myAppointments = appointments.filter(a => {
+        const aptPhone = (a.patientPhone || '').replace(/\s+/g, '');
+        return aptPhone === patientPhoneClean && a.status !== 'Annulé' && a.status !== 'Terminé';
+    });
     
     if (myAppointments.length > 0) {
         // Sort by date to find the nearest
@@ -3652,17 +3646,22 @@ function renderDocumentsTab() {
 
     const invoicesList = document.getElementById('patient-invoices-list');
     const prescriptionsList = document.getElementById('patient-prescriptions-list');
+    const patientPhoneClean = (currentUser.phone || '').replace(/\s+/g, '');
 
-    // Get completed appointments (Factures)
-    const completedApts = allAppointments.filter(a => a.patientId === currentUser.id && a.status === 'Terminé');
+    // Get completed appointments (Factures) — filtrées par téléphone du patient
+    const completedApts = appointments.filter(a => {
+        const aptPhone = (a.patientPhone || '').replace(/\s+/g, '');
+        return aptPhone === patientPhoneClean && (a.status === 'Terminé' || a.status === 'Présent');
+    });
     
+    if (!invoicesList) return;
     if (completedApts.length === 0) {
         invoicesList.innerHTML = '<p class="text-muted text-sm text-center">Aucune facture disponible.</p>';
     } else {
         invoicesList.innerHTML = completedApts.map(apt => `
             <div class="flex justify-between align-center border-b pb-1 mb-1" style="border-bottom: 1px solid var(--color-border);">
                 <div>
-                    <h4 class="font-bold text-sm">${apt.service || 'Consultation'}</h4>
+                    <h4 class="font-bold text-sm">${apt.serviceName || apt.service || 'Consultation'}</h4>
                     <p class="text-xs text-muted">${apt.date} à ${apt.time}</p>
                 </div>
                 <button class="btn btn-sm btn-primary" onclick="generateInvoicePDF('${apt.id}')">
@@ -3672,19 +3671,23 @@ function renderDocumentsTab() {
         `).join('');
     }
 
-    // Diagnostics/Prescriptions
-    const myDiagnostics = allDiagnostics.filter(d => d.patientId === currentUser.id);
+    // Diagnostics/Prescriptions — filtrées par téléphone du patient
+    const myDiagnostics = diagnostics.filter(d => {
+        const diagPhone = (d.patientPhone || '').replace(/\s+/g, '');
+        return diagPhone === patientPhoneClean;
+    });
+    if (!prescriptionsList) return;
     if (myDiagnostics.length === 0) {
         prescriptionsList.innerHTML = '<p class="text-muted text-sm text-center">Aucune ordonnance/diagnostic disponible.</p>';
     } else {
         prescriptionsList.innerHTML = myDiagnostics.map(diag => {
-            const filePath = diag.file_path || diag.fileUrl || diag.fileName || '';
+            const filePath = diag.fileUrl || diag.fileName || '';
             const safePath = filePath.replace(/'/g, "\\'");
             return `
             <div class="flex justify-between align-center border-b pb-1 mb-1" style="border-bottom: 1px solid var(--color-border);">
                 <div>
-                    <h4 class="font-bold text-sm">${diag.description || 'Document Médical'}</h4>
-                    <p class="text-xs text-muted">${new Date(diag.uploadedAt || diag.created_at || new Date()).toLocaleDateString()}</p>
+                    <h4 class="font-bold text-sm">${diag.serviceName || diag.description || 'Document Médical'}</h4>
+                    <p class="text-xs text-muted">${new Date(diag.createdAt || new Date()).toLocaleDateString('fr-FR')}</p>
                 </div>
                 <button onclick="viewMedicalFile('${safePath}')" class="btn btn-sm btn-secondary">
                     <i data-lucide="external-link"></i> Voir
@@ -3697,21 +3700,22 @@ function renderDocumentsTab() {
 }
 
 function generateInvoicePDF(appointmentId) {
-    const apt = allAppointments.find(a => a.id == appointmentId);
+    const apt = appointments.find(a => a.id == appointmentId);
     if (!apt) return;
 
+    const serviceName = apt.serviceName || apt.service || 'Consultation';
     // Populate hidden template
     document.getElementById('pdf-invoice-date').innerText = `Date: ${apt.date}`;
     document.getElementById('pdf-invoice-id').innerText = `N°: FAC-${apt.id.toString().substring(0,6).toUpperCase()}`;
     document.getElementById('pdf-patient-name').innerText = currentUser.name;
     document.getElementById('pdf-patient-phone').innerText = currentUser.phone;
-    document.getElementById('pdf-service-name').innerText = apt.service || 'Consultation';
+    document.getElementById('pdf-service-name').innerText = serviceName;
     
     // Find service price if possible
-    let price = '15 000'; // Default
-    if (apt.service) {
-        const servObj = SERVICES_DATA.find(s => s.name === apt.service);
-        if (servObj) price = servObj.price.replace(' FCFA', '');
+    let price = apt.price ? apt.price.toLocaleString('fr-FR') : '5 000'; // Default
+    if (serviceName) {
+        const servObj = SERVICES_DATA.find(s => s.name === serviceName);
+        if (servObj) price = servObj.price.toLocaleString('fr-FR');
     }
     
     document.getElementById('pdf-service-price').innerText = `${price} FCFA`;
